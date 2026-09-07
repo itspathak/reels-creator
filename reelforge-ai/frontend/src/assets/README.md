@@ -1,0 +1,1 @@
+/* Placeholder asset folder for logos, social icons, and share images. */

@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.vite
+*.log
+.DS_Store
+__pycache__
+*.pyc
+
+# Backend uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+backend/.env
+frontend/.env
