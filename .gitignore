@@ -2,3 +2,5 @@
 p0_pre.png
 p1_pre.png
 package.json
+.vercel
+.env*
