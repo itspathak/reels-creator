@@ -34,6 +34,53 @@ Tell ReelForge AI about your business, upload a few photos, and AI writes the sc
 
 ---
 
+## 🚀 Deployment (Vercel + Render)
+
+### Architecture
+
+| Piece | Host | Notes |
+|---|---|---|
+| Frontend (React/Vite) | **Vercel** | Static build, SPA rewrites |
+| Backend (Node/Express) | **Render** (Web Service) | Runs ffmpeg rendering; `ffmpeg-static` bundled, no apt needed |
+| MySQL | External (e.g. Clever Cloud / TiDB Cloud / Aiven free tier) | Env vars `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` |
+
+### 1. Frontend → Vercel
+
+When importing the repo, set:
+
+- **Root Directory:** `reelforge-ai/frontend`
+- **Framework:** Vite
+- **Build:** `npm run build` · **Output:** `dist`
+- **Env var:** `VITE_API_URL=https://reelforge-backend.onrender.com/api`
+
+`frontend/vercel.json` already adds an SPA rewrite so `/dashboard`, `/login`, etc. resolve on refresh.
+
+### 2. Backend → Render
+
+A `render.yaml` blueprint is included at the repo root. In the Render dashboard choose
+**New → Blueprint**, select the repo, and fill the sealed env vars:
+
+- `DB_HOST`, `DB_USER`, `DB_PASSWORD` — your external MySQL host/credentials
+- `JWT_SECRET` — a long random string
+
+Defaults already set: `DB_NAME=reelforge`, `CLIENT_URL=https://reels-creator.vercel.app`, `VIDEO_PROVIDER=ffmpeg`.
+
+`npm start` runs `scripts/init-db.js` first (creates tables idempotently), then boots the API.
+`ffmpeg-static` + `@ffprobe-installer/ffprobe` are installed during `npm install` (no `apt-get` required),
+and `backend/vendor/fonts/` ships Impact + Nirmala (bundled OTF/TTF) so captions render on Linux.
+
+> Notes for Render free tier: uploaded images and rendered videos live on an ephemeral disk and are
+> wiped on deploy/restart (a persistent disk is a paid add-on). Rendering a reel takes ~60s, so keep
+> the browser tab open while it runs. Without Python/Pillow the reels fall back to gradient backgrounds;
+> without `edge-tts` the narration is skipped (music still plays). None of these block registration.
+
+### 3. Verify
+
+- `https://<backend>/api/health` → `{ success: true, data: { db: 'ok' } }`
+- Open the Vercel URL → create an account → create a Reel.
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -269,10 +316,11 @@ Authenticated endpoints require: `Authorization: Bearer <token>`
 
 ### Switching between demo and real video
 
-| Mode | `VIDEO_PROVIDER` | `CREATOMATE_API_KEY` |
+| Mode | `VIDEO_PROVIDER` | Result |
 |---|---|---|
-| Demo (default) | `demo` | *(empty)* |
-| Real rendering | `creatomate` | `...` |
+| Local ffmpeg (default) | `ffmpeg` | Renders a real 1080×1920 MP4 on the server with bundled ffmpeg |
+| Demo (no rendering) | `demo` | Mock video, no MP4 file |
+| Real rendering API | `creatomate` | Uses Creatomate (needs API key) |
 
 The UI automatically shows **"Video rendering is currently in demo mode"** whenever no video file is produced. The service abstraction (`createReelVideo`) makes swapping providers trivial without touching controllers or the frontend.
 

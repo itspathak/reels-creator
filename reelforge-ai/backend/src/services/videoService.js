@@ -21,13 +21,26 @@ const FFMPEG_CANDIDATES = [
   'C:/Users/ADMIN/AppData/Local/Temp/opencode/ffmpeg-extract/ffmpeg-9.0.1-essentials_build/bin/ffmpeg.exe',
   path.join(__dirname, '../../vendor/ffmpeg/ffmpeg.exe'),
   path.join(__dirname, '../../vendor/ffmpeg/bin/ffmpeg.exe'),
+  '/usr/bin/ffmpeg',
+  '/usr/local/bin/ffmpeg',
 ];
+
+function npmModulePath(fn) {
+  try {
+    const p = fn();
+    return p ? String(p) : null;
+  } catch {
+    return null;
+  }
+}
 
 function resolveFfmpeg() {
   if (process.env.FFMPEG_PATH && fs.existsSync(process.env.FFMPEG_PATH)) return process.env.FFMPEG_PATH;
   for (const c of FFMPEG_CANDIDATES) {
     if (fs.existsSync(c)) return c;
   }
+  const staticPath = npmModulePath(() => require('ffmpeg-static'));
+  if (staticPath && fs.existsSync(staticPath)) return staticPath;
   return 'ffmpeg';
 }
 
@@ -37,7 +50,12 @@ function resolveFfprobe() {
   if (probe && fs.existsSync(probe)) return probe;
   const dir = path.dirname(ff);
   const guess = path.join(dir, 'ffprobe.exe');
-  return fs.existsSync(guess) ? guess : null;
+  if (fs.existsSync(guess)) return guess;
+  const linuxGuess = path.join(dir, 'ffprobe');
+  if (fs.existsSync(linuxGuess)) return linuxGuess;
+  const installerPath = npmModulePath(() => require('@ffprobe-installer/ffprobe').path);
+  if (installerPath && fs.existsSync(installerPath)) return installerPath;
+  return null;
 }
 
 function run(cmd, args, cwd) {
@@ -218,6 +236,13 @@ const FONT_CANDIDATES = [
   'C:/Windows/Fonts/impact.ttf',   // trending-style bold headline (Latin)
   'C:/Windows/Fonts/Nirmala.ttf',  // Devanagari + Gujarati support
   'C:/Windows/Fonts/arialbd.ttf',
+  path.join(__dirname, '../../vendor/fonts/impact.ttf'),
+  path.join(__dirname, '../../vendor/fonts/Nirmala.ttf'),
+  '/usr/share/fonts/truetype/msttcorefonts/Impact.ttf',
+  '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+  '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+  '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf',
+  '/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf',
 ];
 
 function resolveFont(useIndic) {

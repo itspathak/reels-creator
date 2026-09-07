@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: reelforge-backend
+    runtime: node
+    plan: free
+    rootDir: reelforge-ai/backend
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20.18.0"
+      - key: DB_NAME
+        value: reelforge
+      - key: CLIENT_URL
+        value: https://reels-creator.vercel.app
+      - key: VIDEO_PROVIDER
+        value: ffmpeg
+      - key: DB_HOST
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
