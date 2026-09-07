@@ -39,7 +39,7 @@ function resolveFfmpeg() {
   for (const c of FFMPEG_CANDIDATES) {
     if (fs.existsSync(c)) return c;
   }
-  const staticPath = npmModulePath(() => require('ffmpeg-static'));
+  const staticPath = npmModulePath(() => (typeof require === 'function' ? require('ffmpeg-static') : null));
   if (staticPath && fs.existsSync(staticPath)) return staticPath;
   return 'ffmpeg';
 }
@@ -53,7 +53,7 @@ function resolveFfprobe() {
   if (fs.existsSync(guess)) return guess;
   const linuxGuess = path.join(dir, 'ffprobe');
   if (fs.existsSync(linuxGuess)) return linuxGuess;
-  const installerPath = npmModulePath(() => require('@ffprobe-installer/ffprobe').path);
+  const installerPath = npmModulePath(() => (typeof require === 'function' ? require('@ffprobe-installer/ffprobe').path : null));
   if (installerPath && fs.existsSync(installerPath)) return installerPath;
   return null;
 }
