@@ -95,8 +95,8 @@ const updateReel = async (req, res, next) => {
     if (reel.user_id !== req.user.id) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
-    if (reel.status !== 'draft') {
-      return res.status(400).json({ success: false, message: 'Only draft reels can be edited' });
+    if (['generating', 'voice_generating', 'rendering'].includes(reel.status)) {
+      return res.status(400).json({ success: false, message: 'This reel is currently generating — please wait' });
     }
 
     const allowed = ['business_name', 'business_type', 'description', 'festival', 'location', 'shop_number', 'address', 'offer', 'target_audience', 'language', 'style', 'goal', 'voice_preference'];

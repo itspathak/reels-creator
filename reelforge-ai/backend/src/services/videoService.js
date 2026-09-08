@@ -124,6 +124,30 @@ const BUSINESS_MOODS = {
     sound: 'future',
     tags: ['mobile', 'phone', 'electronics', 'gadget', 'computer', 'repair', 'accessories', 'camera', 'laptop', 'tech'],
   },
+  health: {
+    tempo: 116, accent: '#9BE8D8',
+    palette: ['#0F3443', '#34E89E', '#1C5D52'],
+    sound: 'soft',
+    tags: ['pharmacy', 'medical', 'clinic', 'doctor', 'dentist', 'hospital', 'ayurved', 'physio', 'medicine', 'diagnostic', 'lab test'],
+  },
+  auto: {
+    tempo: 126, accent: '#7DF9FF',
+    palette: ['#0F2027', '#2C5364', '#4D6AE1'],
+    sound: 'beast',
+    tags: ['car', 'bike', 'motorcycle', 'automobile', 'tyre', 'garage', 'servicing', 'showroom', 'scooter'],
+  },
+  flowers: {
+    tempo: 112, accent: '#FFD1DC',
+    palette: ['#FF9A9E', '#FAD0C4', '#FBC2EB'],
+    sound: 'soft',
+    tags: ['flower', 'florist', 'bouquet', 'plant', 'nursery', 'gardening'],
+  },
+  photo: {
+    tempo: 124, accent: '#C5B8FF',
+    palette: ['#7F00FF', '#E100FF', '#4D6AE1'],
+    sound: 'glam',
+    tags: ['photograph', 'photography', 'videography', 'photo booth', 'wedding shoot', 'video shoot', 'studio'],
+  },
   general: {
     tempo: 128, accent: '#FFD54F',
     palette: ['#6C5CE7', '#00CEA7', '#8B5CF6'],
@@ -139,7 +163,7 @@ function detectMood(business) {
     (business && business.description) || '',
     (business && business.festival) || '',
   ].join(' ').toLowerCase();
-  for (const key of ['food', 'fashion', 'gym', 'beauty', 'tech']) {
+  for (const key of ['food', 'fashion', 'gym', 'beauty', 'tech', 'health', 'auto', 'flowers', 'photo']) {
     const m = BUSINESS_MOODS[key];
     if (m.tags.some((t) => hay.includes(t))) return m;
   }
@@ -217,14 +241,14 @@ function detectFestival(business) {
   return 'none';
 }
 
-function saveGeneratedScenes(renderDir, category, festivalKey, palette, accent, n, useIndic, description) {
+function saveGeneratedScenes(renderDir, category, festivalKey, palette, accent, n, useIndic, description, businessName) {
   const py = process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)
     ? process.env.PYTHON_PATH
     : 'C:/Users/ADMIN/AppData/Local/Temp/opencode/py/dist/python.exe';
   const script = path.join(__dirname, 'scenes.py');
   if (!fs.existsSync(py) || !fs.existsSync(script)) return false;
   return new Promise((resolve) => {
-    const args = [script, renderDir, category, festivalKey, JSON.stringify(palette.slice(0, 3)), accent, String(n), useIndic ? '1' : '0', description || ''];
+    const args = [script, renderDir, category, festivalKey, JSON.stringify(palette.slice(0, 3)), accent, String(n), useIndic ? '1' : '0', description || '', businessName || ''];
     const c = spawn(py, args, { windowsHide: true });
     let log = '';
     c.stdout.on('data', (dd) => (log += dd.toString()));
@@ -446,7 +470,7 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   const imgPool = imageNames.length ? imageNames : null;
   let genBgs = false;
   if (!imgPool) {
-    genBgs = await saveGeneratedScenes(renderDir, (template.business_type || 'general'), festivalKey, mood.palette, accent, scenesList.length, useIndic, template.description);
+    genBgs = await saveGeneratedScenes(renderDir, (template.business_type || 'general'), festivalKey, mood.palette, accent, scenesList.length, useIndic, template.description, template.business_name);
   }
   const bigSize = useIndic ? 88 : 100;
   for (let i = 0; i < scenesList.length; i++) {

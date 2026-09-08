@@ -10,6 +10,7 @@ Takes:
   argv[6] = num scenes        "5"
   argv[7] = useIndic          "1"/"0"
   argv[8] = description       (free text used for AI-style category analysis)
+  argv[9] = business name     (optional, also screened for category hints)
 
 Draws rich illustrated full-bleed 1080x1920 animated-feel backgrounds (one per
 scene) with clearly business-specific hero visuals (cloth, spa, food, gym,
@@ -36,6 +37,7 @@ ACCENT = sys.argv[5] if len(sys.argv) > 5 else "#FFD54F"
 N = int(sys.argv[6]) if len(sys.argv) > 6 else 5
 INDIC = len(sys.argv) > 7 and sys.argv[7] == "1"
 DESC = sys.argv[8] if len(sys.argv) > 8 else ""
+BIZ = sys.argv[9] if len(sys.argv) > 9 else ""
 
 W, H = 1080, 1920
 
@@ -45,18 +47,22 @@ def bright(c, f=0.25):
     return (min(255, int(r + (255 - r) * f)), min(255, int(g + (255 - g) * f)), min(255, int(b + (255 - b) * f)))
 
 
-# ---- AI-style analysis: derive the visual category from business type + description ----
+# ---- AI-style analysis: derive the visual category from business type + description + name ----
 def _derive_category():
-    text = (CAT + " " + DESC).lower()
+    text = (CAT + " " + DESC + " " + BIZ).lower()
     rules = [
-        (["jeans", "shirt", "saree", "kurta", "lehenga", "ethnic", "cloth", "fabric", "dress", "boutique", "tailor", "garment", "fashion", "suit", "trouser", "dupatta", "dress material", "western wear", "tshirt", "t-shirt", "kurti", "denim", "apparel", "menswear", "womenswear", "kids wear", "sherwani", "chikan", "bandhgala", "suiting", "trousers", "shirts", "stitch"], "fashion"),
-        (["jewellery", "jewel", "gold", "silver", "ring", "diamond", "earring", "necklace", "ornament", "kundan", "jhumka", "bangle", "chain", "zari", "studs", "diamonds"], "jewellery"),
-        (["spa", "massage", "parlour", "facial", "skin", "glow", "makeover", "mehendi", "mehndi", "salon", "nail art", "wax", "haircut", "threading", "bleach", "tan", "bridal", "beauty", "mani", "pedi", "makeup", "lashes", "barber"], "beauty"),
-        (["gym", "fitness", "workout", "yoga", "zumba", "trainer", "protein", "aerobics", "pilates", "crossfit", "boxing", "cardio", "strength", "muscle", "bodybuilding"], "gym"),
-        (["mobile", "phone", "electronics", "gadget", "computer", "laptop", "repair", "accessories", "camera", "tech", "tv", "led", "sound", "speaker", "cctv", "printer", "smartwatch", "refurbished"], "tech"),
-        (["real estate", "property", "flat", "builder", "builders", "home loans", "apartment", "villa", "plot", "land", "construction", "interior", "architecture"], "estate"),
-        (["travel", "hill station", "hill", "nature", "mountain", "resort", "tour", "forest", "lake", "beach", "trek", "trekking", "valley", "homestay", "honeymoon", "vacation", "sightseeing", "adventure", "guesthouse", "cottage", "paragliding"], "travel"),
-        (["pizza", "burger", "cake", "sweet", "mithai", "restaurant", "cafe", "bakery", "food", "snack", "biryani", "cater", "chocolate", "curry", "thali", "dosa", "chaat", "tandoor", "kebab", "samosa", "ice cream", "street food", "dinner", "lunch", "breakfast", "juice", "tiffin", "kitchen", "dhaba"], "food"),
+        (["jeans", "shirt", "saree", "kurta", "lehenga", "ethnic", "cloth", "fabric", "dress", "boutique", "tailor", "tailoring", "garment", "fashion", "suit", "trouser", "dupatta", "dress material", "western wear", "tshirt", "t-shirt", "kurti", "denim", "apparel", "menswear", "womenswear", "kids wear", "sherwani", "chikan", "bandhgala", "suiting", "trousers", "shirts", "stitch", "uniform", "blazer", "jacket", "leather jacket"], "fashion"),
+        (["jewellery", "jewel", "gold", "silver", "ring", "diamond", "earring", "necklace", "ornament", "kundan", "jhumka", "bangle", "chain", "zari", "studs", "diamonds", "bridal set", "nose pin"], "jewellery"),
+        (["spa", "massage", "parlour", "facial", "skin", "glow", "makeover", "mehendi", "mehndi", "salon", "nail art", "wax", "haircut", "threading", "bleach", "tan", "bridal", "beauty", "mani", "pedi", "makeup", "lashes", "barber", "hair styl", "eyes brow", "henna"], "beauty"),
+        (["gym", "fitness", "workout", "yoga", "zumba", "trainer", "protein", "aerobics", "pilates", "crossfit", "boxing", "cardio", "strength", "muscle", "bodybuilding", "personal training"], "gym"),
+        (["car", "bike", "motorcycle", "automobile", "auto", "servicing", "tyre", "tyres", "showroom", "spare", "garage", "workshop", "scooter", "ev", "electric vehicle", "four wheeler", "two wheeler"], "auto"),
+        (["mobile", "phone", "electronics", "gadget", "computer", "laptop", "repair", "accessories", "camera", "tech", "tv", "led", "sound", "speaker", "cctv", "printer", "smartwatch", "refurbished", "gaming", "appliance", "ac repair", "air conditioner", "mobile cover", "earphones"], "tech"),
+        (["real estate", "property", "flat", "builder", "builders", "home loans", "apartment", "villa", "plot", "land", "construction", "interior", "architecture", "furniture", "modular kitchen", "plywood", "paint", "hardware", "architect", "broker", "property dealer", "coliving", "pg"], "estate"),
+        (["travel", "hill station", "hill", "nature", "mountain", "resort", "tour", "forest", "lake", "beach", "trek", "trekking", "valley", "homestay", "honeymoon", "vacation", "sightseeing", "adventure", "guesthouse", "cottage", "paragliding", "travel agency", "taxi", "car rental", "tour operator"], "travel"),
+        (["pizza", "burger", "cake", "sweet", "mithai", "restaurant", "cafe", "bakery", "food", "snack", "biryani", "cater", "catering", "chocolate", "curry", "thali", "dosa", "chaat", "tandoor", "kebab", "samosa", "ice cream", "street food", "dinner", "lunch", "breakfast", "juice", "tiffin", "kitchen", "dhaba", "namkeen", "popcorn", "momos", "noodles", "pav bhaji", "chai", "coffee", "dairy", "cloud kitchen", "veg food", "non veg"], "food"),
+        (["pharmacy", "medical", "clinic", "doctor", "dentist", "dental", "hospital", "ayurved", "physio", "health", "medicine", "clinic", "diagnostic", "lab test"], "health"),
+        (["flower", "florist", "bouquet", "plant", "nursery", "gardening", "greenhouse", "indoor plants"], "flowers"),
+        (["photograph", "photography", "videography", "camera", "photo booth", "video shoot", "wedding shoot", "studio", "snap", "pre wedding", "editing"], "photo"),
     ]
     for kw, cat in rules:
         if any(k in text for k in kw):
@@ -385,6 +391,80 @@ def _motif_mountain(im, d, x, y, col, s=1.0):
                (wx - crop, y - 2 * s), (wx - crop, y - 200 * s)], fill=(255, 255, 255, 210))
 
 
+def _motif_cross(im, d, x, y, col, s=1.0):
+    c = col
+    d.rounded_rectangle([x - 70 * s, y - 250 * s, x + 70 * s, y + 250 * s], radius=36, fill=c + (235,))
+    d.rounded_rectangle([x - 250 * s, y - 70 * s, x + 250 * s, y + 70 * s], radius=36, fill=c + (235,))
+    d.rounded_rectangle([x - 48 * s, y - 190 * s, x + 48 * s, y + 190 * s], radius=26, fill=(255, 255, 255, 60))
+    d.rounded_rectangle([x - 190 * s, y - 48 * s, x + 190 * s, y + 48 * s], radius=26, fill=(255, 255, 255, 60))
+
+
+def _motif_pill(im, d, x, y, col, s=1.0):
+    d.rounded_rectangle([x - 190 * s, y - 55 * s, x - 20 * s, y + 55 * s], radius=55, fill=(250, 120, 120, 235))
+    d.rounded_rectangle([x + 20 * s, y - 55 * s, x + 190 * s, y + 55 * s], radius=55, fill=(140, 200, 255, 235))
+    d.line([(x, y - 55 * s), (x, y + 55 * s)], fill=(255, 255, 255, 160), width=6)
+
+
+def _motif_stetho(im, d, x, y, col, s=1.0):
+    c = col
+    d.arc([x - 150 * s, y - 260 * s, x + 150 * s, y + 40 * s], 200, 340, fill=c + (235,), width=16)
+    d.arc([x - 150 * s, y - 260 * s, x + 150 * s, y + 40 * s], 200, 340, outline=c + (120,), width=6)  # noqa
+    d.line([(x, y - 60 * s), (x, y + 40 * s)], fill=c + (235,), width=14)
+    d.ellipse([x - 45 * s, y + 20 * s, x + 45 * s, y + 120 * s], outline=c + (235,), width=14, fill=(255, 255, 255, 40))
+    d.ellipse([x - 30 * s, y + 35 * s, x + 30 * s, y + 100 * s], fill=(255, 255, 255, 90))
+
+
+def _motif_car(im, d, x, y, col, s=1.0):
+    c = col
+    d.rounded_rectangle([x - 300 * s, y - 90 * s, x + 300 * s, y + 90 * s], radius=60, fill=c + (240,))
+    d.polygon([(x - 150 * s, y - 90 * s), (x - 40 * s, y - 210 * s), (x + 150 * s, y - 210 * s),
+               (x + 240 * s, y - 90 * s)], fill=c + (240,))
+    d.polygon([(x - 120 * s, y - 92 * s), (x - 30 * s, y - 178 * s), (x + 60 * s, y - 178 * s),
+               (x + 120 * s, y - 92 * s)], fill=(200, 235, 255, 200))
+    for wx in [-170, 170]:
+        d.ellipse([x + wx - 80 * s, y + 20 * s, x + wx + 80 * s, y + 150 * s], fill=(30, 34, 46, 245))
+        d.ellipse([x + wx - 40 * s, y + 45 * s, x + wx + 40 * s, y + 125 * s], fill=(210, 220, 235, 230))
+
+
+def _motif_flower(im, d, x, y, col, s=1.0):
+    c = col
+    for k in range(8):
+        ang = math.radians(k * 45)
+        px = x + 130 * s * math.cos(ang)
+        py = y + 130 * s * math.sin(ang)
+        d.ellipse([px - 62 * s, py - 62 * s, px + 62 * s, py + 62 * s], fill=c + (225,))
+    d.ellipse([x - 80 * s, y - 80 * s, x + 80 * s, y + 80 * s], fill=(255, 215, 120, 245))
+    d.ellipse([x - 40 * s, y - 40 * s, x + 40 * s, y + 40 * s], fill=(255, 240, 180, 255))
+
+
+def _motif_stem(im, d, x, y, col, s=1.0):
+    d.line([(x, y), (x, y + 220 * s)], fill=(90, 170, 90, 210), width=12)
+    _motif_leaf(im, d, x + 20 * s, y + 90 * s, (110, 200, 110), s)
+
+
+def _motif_camera(im, d, x, y, col, s=1.0):
+    c = col
+    d.rounded_rectangle([x - 240 * s, y - 130 * s, x + 240 * s, y + 160 * s], radius=50, fill=(40, 44, 56, 245))
+    d.rounded_rectangle([x - 140 * s, y - 190 * s, x + 90 * s, y - 110 * s], radius=24, fill=(90, 96, 116, 245))
+    d.ellipse([x - 120 * s, y - 80 * s, x + 120 * s, y + 160 * s], outline=(235, 240, 250, 245), width=22)
+    d.ellipse([x - 90 * s, y - 50 * s, x + 90 * s, y + 130 * s], fill=(40, 70, 160, 255))
+    d.ellipse([x - 55 * s, y - 20 * s, x + 55 * s, y + 95 * s], fill=(120, 170, 255, 255))
+    d.ellipse([x - 18 * s, y - 6 * s, x + 18 * s, y + 55 * s], fill=(235, 245, 255, 255))
+    d.ellipse([x + 170 * s, y - 90 * s, x + 200 * s, y - 60 * s], fill=(245, 200, 90, 255))
+
+
+def _motif_film(im, d, x, y, col, s=1.0):
+    c = col
+    d.rounded_rectangle([x - 260 * s, y - 90 * s, x + 260 * s, y + 90 * s], radius=24, fill=(28, 30, 40, 240))
+    for i in range(6):
+        wx = x - 220 * s + i * 88 * s
+        d.rounded_rectangle([wx, y - 62 * s, wx + 60 * s, y + 62 * s], radius=12, fill=(200, 220, 255, 220))
+    for i in range(7):
+        sx = x - 235 * s + i * 78 * s
+        d.rounded_rectangle([sx, y - 92 * s, sx + 12 * s, y - 62 * s], radius=4, fill=(70, 74, 90, 245))
+        d.rounded_rectangle([sx, y + 62 * s, sx + 12 * s, y + 92 * s], radius=4, fill=(70, 74, 90, 245))
+
+
 def _motif_cloud(im, d, x, y, col, a=160, s=1.0):
     d.ellipse([x - 150 * s, y - 45 * s, x + 150 * s, y + 45 * s], fill=col + (a,))
     d.ellipse([x - 80 * s, y - 90 * s, x + 60 * s, y + 15 * s], fill=col + (a,))
@@ -551,6 +631,33 @@ def _floaters(im, d, accent_fg, i):
                 pick(im, d, x, y, w, 190, sc)
             else:
                 pick(im, d, x, y, (255, 220, 160), sc)
+        elif CAT == "health":
+            pick = [_motif_cross, _motif_pill, _motif_stetho][off % 3]
+            if pick is _motif_cross:
+                pick(im, d, x, y, (255, 130, 150), sc)
+            elif pick is _motif_pill:
+                pick(im, d, x, y, w, sc)
+            else:
+                pick(im, d, x, y, w, sc)
+        elif CAT == "auto":
+            pick = _motif_car
+            pick(im, d, x, y, cA, sc * 0.8)
+        elif CAT == "flowers":
+            pick = [_motif_flower, _motif_stem, _motif_leaf][off % 3]
+            if pick is _motif_flower:
+                pick(im, d, x, y, [cA, cB, (255, 170, 190), (230, 170, 255)][off % 4], sc)
+            elif pick is _motif_leaf:
+                pick(im, d, x, y, (120, 210, 130), sc)
+            else:
+                pick(im, d, x, y, cA, sc)
+        elif CAT == "photo":
+            pick = [_motif_camera, _motif_film, _motif_sparkle][off % 3]
+            if pick is _motif_sparkle:
+                pick(im, d, x, y, w, 170, sc)
+            elif pick is _motif_film:
+                pick(im, d, x, y, cB, sc)
+            else:
+                pick(im, d, x, y, cB, sc)
         else:
             _motif_sparkle(im, d, x, y, w, 160, sc)
 
@@ -610,6 +717,25 @@ def _draw_hero(im, d, i):
         _motif_buildings(im, d, cx, cy + 130, accent2, 1.1)
         _motif_sun(im, d, cx + 260, cy - 190, (255, 220, 130, 255), 110)
         _motif_cloud(im, d, cx - 280, cy - 160, (255, 255, 255), 150, 0.8)
+    elif CAT == "health":
+        _motif_cross(im, d, cx + 60, cy - 40, accent2, 0.8)
+        _motif_pill(im, d, cx - 240, cy + 120, (255, 255, 255), 0.9)
+        _motif_stetho(im, d, cx + 290, cy + 60, (255, 255, 255), 0.8)
+        _motif_sparkle(im, d, cx - 300, cy - 180, (255, 255, 255), 200, 1.0)
+    elif CAT == "auto":
+        _motif_car(im, d, cx, cy + 60, accent2, 0.95)
+        _motif_sparkle(im, d, cx - 320, cy - 190, (255, 215, 120), 200, 1.1)
+        _motif_sparkle(im, d, cx + 300, cy - 120, (255, 255, 255), 170, 0.8)
+    elif CAT == "flowers":
+        _motif_stem(im, d, cx - 230, cy + 60, accent2, 1.0)
+        _motif_flower(im, d, cx + 220, cy - 30, (255, 170, 200), 1.0)
+        _motif_flower(im, d, cx - 60, cy + 140, (230, 170, 255), 0.6)
+        _motif_leaf(im, d, cx + 300, cy + 110, (120, 210, 130), 0.8)
+        _motif_sparkle(im, d, cx + 320, cy - 190, (255, 255, 255), 200, 1.0)
+    elif CAT == "photo":
+        _motif_camera(im, d, cx - 50, cy + 30, accent2, 1.0)
+        _motif_film(im, d, cx + 300, cy - 40, (255, 255, 255), 0.7)
+        _motif_sparkle(im, d, cx - 300, cy - 190, (255, 255, 255), 200, 1.1)
     else:
         _draw_diagonal_rays(im, d, cx, cy, (255, 255, 255), 26, 16)
         _draw_circles(im, d, (255, 255, 255), 80, 9, 100 + i, 320)
