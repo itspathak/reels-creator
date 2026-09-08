@@ -114,7 +114,7 @@ function generateLocalVoice(text, language, voiceSettings = {}) {
     : 'auto';
   const voice = pickEdgeVoice(language, pref);
 
-  const rates = { auto: '+8%', male: '+5%', female: '+8%', child: '+12%' };
+  const rates = { auto: '+5%', male: '+2%', female: '+5%', child: '+10%' };
   const pitches = { auto: '+8Hz', male: '-6Hz', female: '+8Hz', child: '+38Hz' };
 
   const rate = rates[pref] || rates.auto;

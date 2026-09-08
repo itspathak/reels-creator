@@ -61,6 +61,12 @@ function resolveFfprobe() {
 function run(cmd, args, cwd) {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { windowsHide: true, cwd });
+    if (process.platform === 'win32') {
+      try {
+        const { exec } = require('child_process');
+        exec(`powershell -NoProfile -Command "(Get-Process -Id ${child.pid}).PriorityClass='BelowNormal'`, { windowsHide: true }, () => {});
+      } catch {}
+    }
     let stderr = '';
     child.stderr.on('data', (d) => (stderr += d.toString()));
     child.on('error', (e) => reject(e));
@@ -355,6 +361,48 @@ async function fetchStockImages(renderDir, category, count) {
   return files;
 }
 
+// ---------------------------------------------------------------------------
+// Hardware encoding (Intel QSV) so rendering offloads CPU; falls back to x264.
+// ---------------------------------------------------------------------------
+let HW_MODE = null;
+let hwProbe = null;
+function probeHw() {
+  if (!hwProbe) {
+    hwProbe = (async () => {
+      try {
+        const ff = resolveFfmpeg();
+        const ok = await new Promise((resolve) => {
+          const child = spawn(ff, ['-hide_banner', '-f', 'lavfi', '-i', 'color=black:s=320x320:d=1', '-c:v', 'h264_qsv', '-preset', 'veryfast', '-f', 'null', '-'], { windowsHide: true });
+          child.on('error', () => resolve(false));
+          child.on('close', (code) => resolve(code === 0));
+        });
+        HW_MODE = ok ? 'qsv' : null;
+        console.log(ok ? '[Video] Intel QSV hardware encoding enabled' : '[Video] QSV unavailable — using libx264');
+      } catch {
+        HW_MODE = null;
+      }
+    })();
+  }
+  return hwProbe;
+}
+
+function encArgsV(outFormat, quality = 22) {
+  const vf = { 1: '' };
+  return HW_MODE === 'qsv'
+    ? { codec: ['-c:v', 'h264_qsv', '-global_quality', String(quality), '-preset', 'veryfast', '-maxrate', '14M', '-bufsize', '18M', '-pix_fmt', 'nv12'], fmt: outFormat === 'nv12' ? 'nv12' : 'yuv420p' }
+    : { codec: ['-c:v', 'libx264', '-crf', String(Math.round((quality / 22) * 18)), '-preset', 'medium', '-pix_fmt', 'yuv420p'], fmt: 'yuv420p' };
+}
+
+// ---------------------------------------------------------------------------
+// Render queue: only one video renders at a time so the PC stays usable.
+// ---------------------------------------------------------------------------
+let renderChain = Promise.resolve();
+function enqueueRender(job) {
+  const runJob = renderChain.then(job);
+  renderChain = runJob.then(() => {}, () => {});
+  return runJob;
+}
+
 function saveGeneratedScenes(renderDir, category, festivalKey, palette, accent, n, useIndic, description, businessName) {
   const py = process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)
     ? process.env.PYTHON_PATH
@@ -457,6 +505,7 @@ async function generateStickers(renderDir, accent, useIndic) {
  * opts: { template, scenes, media, voiceUrl, brandKit }
  */
 async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit }) {
+  await probeHw();
   const ffmpeg = resolveFfmpeg();
   if (!fs.existsSync(ffmpeg) && !process.env.FFMPEG_PATH) {
     throw new Error('FFmpeg was not found. Set FFMPEG_PATH in backend/.env to your ffmpeg.exe location.');
@@ -562,7 +611,7 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   let durations = scenesList.map((s) => Math.max(2, Math.min(4, s.duration || 3)));
   const baseTotal = durations.reduce((a, b) => a + b, 0) - OVERLAP * (durations.length - 1);
   if (voiceDur > baseTotal) {
-    const scale = voiceDur / Math.max(baseTotal, 1);
+    const scale = Math.min(voiceDur, 22) / Math.max(baseTotal, 1);
     durations = durations.map((d) => Math.round(d * scale * 25) / 25);
   }
   const total = durations.reduce((a, b) => a + b, 0) - OVERLAP * (durations.length - 1);
@@ -593,6 +642,7 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   }
   const bgAny = Boolean(imgPool || stockBgs.length);
   const bigSize = useIndic ? 88 : 100;
+  const sceneEnc = encArgsV('nv12', 20);
   for (let i = 0; i < scenesList.length; i++) {
     let bgImage = imgPool ? imgPool[i % imgPool.length] : stockBgs.length ? stockBgs[i % stockBgs.length] : null;
     const zoomIn = i % 2 === 0;
@@ -610,20 +660,20 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
       }
     }
 
-    const frames = Math.round(durations[i] * 25);
+    const frames = Math.round(durations[i] * 30);
     const zoomExpr = zoomIn
-      ? `z='min(1.0+0.0022*on,1.34)'`
-      : `z='max(1.34-0.0022*on,1.03)'`;
+      ? `z='min(1.0+0.0016*on,1.34)'`
+      : `z='max(1.34-0.0016*on,1.03)'`;
     const panExpr = i % 3 === 0 ? `x='iw/2-(iw/zoom/2)+45*sin(on/30)'` : `x='iw/2-(iw/zoom/2)'`;
     const mirror = bgAny && i % 2 === 1 ? ',hflip' : '';
 
     const filter = [
-      `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920${mirror},zoompan=${zoomExpr}:${panExpr}:y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920:fps=25[zi]`,
+      `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920${mirror},zoompan=${zoomExpr}:${panExpr}:y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920:fps=30[zi]`,
       `[1:v]scale=1080:1920,format=rgba,colorchannelmixer=aa=0.30[wash]`,
       `[zi][wash]overlay=0:0[bgw]`,
       `[bgw]drawbox=x=0:y=ih*0.855:w=iw:h=ih*0.145:color=black@0.38:t=fill[bgd]`,
       `[bgd]drawtext=fontfile=${fontName}:textfile=t${i}.txt:expansion=none:fontcolor=white:fontsize=${bigSize}:line_spacing=8:borderw=9:bordercolor=black@0.8:shadowx=0:shadowy=9:shadowcolor=black@0.55:alpha='if(lt(t,0.35),t/0.35,1)':x=(w-text_w)/2:y='h*0.285+13*sin(2*PI*t*${beatHz.toFixed(3)})'[td]`,
-      `[td]drawtext=fontfile=${fontName}:textfile=s${i}.txt:expansion=none:fontcolor=white@0.96:fontsize=38:shadowx=0:shadowy=5:shadowcolor=black@0.6:alpha='if(lt(t,0.6),(t-0.2)/0.35,1)':x=(w-text_w)/2:y=h*0.895`,
+      `[td]drawtext=fontfile=${fontName}:textfile=s${i}.txt:expansion=none:fontcolor=white@0.96:fontsize=38:shadowx=0:shadowy=5:shadowcolor=black@0.6:alpha='if(lt(t,0.6),(t-0.2)/0.35,1)':x=(w-text_w)/2:y='h*0.895-7*sin(2*PI*t*0.6)'`,
     ].join(';');
 
     await run(
@@ -633,7 +683,7 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
         '-f', 'lavfi', '-i', `gradients=s=1080x1920:c0=${mood.palette[0]}:c1=${mood.palette[1]}:c2=${mood.palette[2] || mood.palette[1]}:x0=0:y0=0:x1=1080:y1=1920:duration=${total.toFixed(1)}:speed=0.02`,
         '-filter_complex', filter,
         '-t', String(durations[i]), '-an',
-        '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
+        ...sceneEnc.codec,
         `sc${i}.mp4`,
       ],
       renderDir
@@ -683,11 +733,15 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
     base = lbl;
   };
 
+  function saveScenes() {
+  const evenScenes = durations.map((_, i) => i).filter((i) => i % 2 === 0);
+  const oddScenes = durations.map((_, i) => i).filter((i) => i % 2 === 1);
+
   // burst behind headline (all scenes)
   nextOverlay('burst.png', 96, 206, winExpr([...Array(durations.length).keys()]));
-  // sparkles
-  nextOverlay('spark1.png', 872, 432, winExpr([0, 2]));
-  nextOverlay('spark2.png', 430, 70, winExpr([1, 3]));
+  // sparkles everywhere
+  nextOverlay('spark1.png', 872, 432, winExpr(evenScenes));
+  nextOverlay('spark2.png', 430, 70, winExpr(oddScenes));
   // hot badge near offer
   if (offer) {
     nextOverlay('hot.png', 660, 226, winExpr([0, 1]));
@@ -696,6 +750,8 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   }
   // visit CTA pill (last scene)
   nextOverlay('visit.png', 230, 1560, winExpr([durations.length - 1]));
+}
+saveScenes();
 
   // logo top-left (always)
   if (logoName) {
@@ -706,30 +762,32 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
     base = lbl;
   }
 
-  chain += `;[${base}]eq=contrast=1.09:brightness=0.012:saturation=1.25:gamma=0.98,unsharp=5:5:0.5:5:5:0,vignette=angle=PI/6,noise=alls=2:allf=t+u,format=yuv420p[vout]`;
-  args.push('-filter_complex', chain, '-map', '[vout]', '-t', String(total), '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', 'noaudio.mp4');
+  const passBEnc = encArgsV('nv12', 18);
+  const fadeOut = Math.max(0, total - 0.8).toFixed(2);
+  chain += `;[${base}]eq=contrast=1.09:brightness=0.012:saturation=1.25:gamma=0.98,unsharp=5:5:0.5:5:5:0,vignette=angle=PI/6,noise=alls=2:allf=t+u,fade=t=in:st=0:d=0.4,fade=t=out:st=${fadeOut}:d=0.8,format=${passBEnc.fmt}[vout]`;
+  args.push('-filter_complex', chain, '-map', '[vout]', '-t', String(total), '-an', ...passBEnc.codec, 'noaudio.mp4');
   await run(ffmpeg, args, renderDir);
 
   // ---- audio: narration (if any) + energetic beat ----
   synthMusicWav(path.join(renderDir, 'music.wav'), total, mood);
-  await run(ffmpeg, ['-y', '-i', 'music.wav', '-c:a', 'aac', '-b:a', '96k', 'music.m4a'], renderDir);
+  await run(ffmpeg, ['-y', '-i', 'music.wav', '-c:a', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '128k', 'music.m4a'], renderDir);
 
   let audioArgs;
   if (voiceAbs && fs.existsSync(voiceAbs)) {
     const voiceFile = path.basename(voiceAbs);
     await run(
       ffmpeg,
-      ['-y', '-i', voiceFile, '-filter_complex', `[0:a]volume=1.0,atrim=0:${total.toFixed(2)}[v]`, '-map', '[v]', '-c:a', 'aac', '-b:a', '128k', 'voice.m4a'],
+      ['-y', '-i', voiceFile, '-filter_complex', `[0:a]volume=1.0,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,loudnorm=I=-16:TP=-2:LRA=9,atrim=0:${total.toFixed(2)}[v]`, '-map', '[v]', '-c:a', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '192k', 'voice.m4a'],
       renderDir
     );
     audioArgs = ['-y', '-i', 'noaudio.mp4', '-i', 'voice.m4a', '-i', 'music.m4a',
-      '-filter_complex', '[1:a]volume=1.0[voi];[2:a]volume=0.28[mus];[voi][mus]amix=inputs=2:duration=longest:normalize=0:dropout_transition=0,alimiter=limit=0.95[aout]',
+      '-filter_complex', '[1:a]volume=1.05[voi];[2:a]volume=0.22[mus];[voi][mus]amix=inputs=2:duration=longest:normalize=0:dropout_transition=0,alimiter=limit=0.95[aout]',
       '-map', '0:v', '-map', '[aout]',
-      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2), '-movflags', '+faststart', 'reel.mp4'];
+      '-c:v', 'copy', '-c:a', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '192k', '-t', total.toFixed(2), '-movflags', '+faststart', 'reel.mp4'];
   } else {
     audioArgs = ['-y', '-i', 'noaudio.mp4', '-i', 'music.m4a',
       '-map', '0:v', '-map', '1:a',
-      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-t', total.toFixed(2), '-movflags', '+faststart', 'reel.mp4'];
+      '-c:v', 'copy', '-c:a', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '160k', '-t', total.toFixed(2), '-movflags', '+faststart', 'reel.mp4'];
   }
   await run(ffmpeg, audioArgs, renderDir);
 
@@ -943,7 +1001,7 @@ async function createReelVideo(opts) {
     return createCreatomateVideo(opts);
   }
 
-  return renderWithFfmpeg(opts);
+  return enqueueRender(() => renderWithFfmpeg(opts));
 }
 
 async function createCreatomateVideo({ template, scenes, media, voiceUrl, brandKit }) {
