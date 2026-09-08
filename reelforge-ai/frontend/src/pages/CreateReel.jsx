@@ -165,7 +165,7 @@ export default function CreateReel() {
     try {
       const id = await saveDraft();
       setReelId(id);
-      setStep(4);
+      setStep(3);
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
