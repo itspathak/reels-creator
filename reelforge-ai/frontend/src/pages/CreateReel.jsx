@@ -18,6 +18,13 @@ const FESTIVALS = [
 
 const LANGUAGES = ['English', 'Hindi', 'Gujarati', 'Hinglish'];
 
+const VOICES = [
+  { name: 'auto', icon: '🎙️', label: 'Auto' },
+  { name: 'male', icon: '👨', label: 'Male' },
+  { name: 'female', icon: '👩', label: 'Female' },
+  { name: 'child', icon: '🧒', label: 'Child' },
+];
+
 const STYLES = [
   { name: 'Viral', icon: '🔥' },
   { name: 'Premium', icon: '💎' },
@@ -63,6 +70,7 @@ export default function CreateReel() {
     language: 'English',
     style: 'Viral',
     goal: 'Get More Customers',
+    voice: 'auto',
   });
   const [media, setMedia] = useState([]);
 
@@ -89,6 +97,7 @@ export default function CreateReel() {
           language: r.language || 'English',
           style: r.style || 'Viral',
           goal: r.goal || 'Get More Customers',
+          voice: r.voice_preference || 'auto',
         });
         setMedia(
           (res.data.media || []).map((m) => ({
@@ -117,6 +126,7 @@ export default function CreateReel() {
       language: form.language,
       style: form.style,
       goal: form.goal,
+      voice_preference: form.voice,
     };
     let id = reelId;
     if (id) {
@@ -312,6 +322,21 @@ export default function CreateReel() {
                 </select>
               </div>
               <div className="field">
+                <label>Voice</label>
+                <div className="option-grid">
+                  {VOICES.map((v) => (
+                    <div
+                      key={v.name}
+                      className={`option-card ${form.voice === v.name ? 'selected' : ''}`}
+                      onClick={() => setForm({ ...form, voice: v.name })}
+                    >
+                      <div className="option-icon">{v.icon}</div>
+                      <div className="option-label">{v.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="field">
                 <label>Reel Style</label>
                 <div className="option-grid">
                   {STYLES.map((s) => (
@@ -378,6 +403,7 @@ export default function CreateReel() {
                 <div className="summary-item"><div className="k">Target Audience</div><div className="v">{form.target_audience || '—'}</div></div>
                 <div className="summary-item"><div className="k">Description</div><div className="v">{form.description || '—'}</div></div>
                 <div className="summary-item"><div className="k">Language</div><div className="v">{form.language}</div></div>
+                <div className="summary-item"><div className="k">Voice</div><div className="v">{VOICES.find((v) => v.name === form.voice)?.label || form.voice}</div></div>
                 <div className="summary-item"><div className="k">Style</div><div className="v">{form.style}</div></div>
                 <div className="summary-item"><div className="k">Goal</div><div className="v">{form.goal}</div></div>
                 <div className="summary-item"><div className="k">Media Uploaded</div><div className="v">{media.length || 0} item(s)</div></div>

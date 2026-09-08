@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS reels (
   language VARCHAR(60) DEFAULT 'English',
   style VARCHAR(60) DEFAULT 'Viral',
   goal VARCHAR(120) NULL,
+  voice_preference VARCHAR(20) DEFAULT 'auto',
   hook TEXT NULL,
   script LONGTEXT NULL,
   caption TEXT NULL,

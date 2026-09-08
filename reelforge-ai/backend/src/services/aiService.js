@@ -156,60 +156,60 @@ function generateMockConcept(business) {
   // --- festival greeting for the hook ---
   const festHook = festLabel ? `${festLabel.toUpperCase()} SALE` : 'SPECIAL SALE';
 
-  // --- voiceover lines (specific to brand/product/offer/location) ---
+  // --- voiceover lines (specific, energetic, data-driven) ---
   const vo = (hindi ? [
-    `${festLabel ? `Is ${festLabel} ke khaas offers ${brand} par! ` : ''}${offerLine} — ${productLine} aapka intezaar kar rahe hain.`,
-    `${brand} mein milenge ${productLine}. Quality jispe aap bharosa kar sakte hain.`,
-    `${offerLine}. ${festLabel ? 'Tyohaar ka maza lag jayega' : 'Aapke budget ke andar hi'} — ${brand} par hi.`,
-    `Milte hain ${locLine}. ${brand} yahin hai.`,
-    `${offerLine}. ${locLine}. ${hindi ? 'Aaj hi aaiye' : 'Visit us today'} — ${brand}!`,
+    `${festLabel ? `Haan, ${festLabel} ka mauka aa gaya! ` : 'Rukna mat, deal aa gayi! '}${offerLine} — sirf ${brand} par, aur khaas ${productLine} ke saath.`,
+    `${brand} mein ${productLine} ka dhamaka! Quality, style aur shaandaar offers — sab kuch ek hi jagah.`,
+    `${offerLine}. ${festLabel ? 'Tyohaar ka maza ab double! ' : 'Budget mein hi full maza! '}Time limited hai — jitni der me dhyan se dekho, deal puri ho jayegi!`,
+    loc ? `Store chale jao — ${loc}. ${brand} yahin hai, aur offer paas mein hi!` : `Store chale jao — ${brand} yahin hai, aur offer paas mein hi!`,
+    `Ek last reminder! ${offerLine}, ${locLine}. ${hindi ? 'Aaj hi aaiye' : 'Visit us today'} — ${brand}!`,
   ] : [
-    `${festLabel ? `Festive offers are here! ` : ''}${offerLine} on ${productLine} — only at ${brand}.`,
-    `${brand} brings you quality you can trust.`,
-
-    `${offerLine} — grab it before it is gone, only at ${brand}.`,
-    `Find us at ${locLine}. ${brand} is right here.`,
-    `${offerLine}. ${locLine}. Visit ${brand} today!`,
+    `${festLabel ? `Hey, it's ${festLabel} time! ` : 'Wait, the deal is here! '}${offerLine} on ${productLine} — only at ${brand}.`,
+    `${brand} is serving up the best ${productLine} with style, quality and crazy-good offers.`,
+    `${offerLine}! ${festLabel ? 'Make this festive season special. ' : 'Big on value, easy on budget. '}Limited time — hurry before it is gone!`,
+    loc ? `Head over to ${loc}. ${brand} is right here, deals are waiting!` : `Head over to the store — ${brand} is right here, deals are waiting!`,
+    `One last reminder! ${offerLine}, ${locLine}. Visit ${brand} today!`,
   ]);
 
   const texts = (hindi ? [
     `${festHook} @ ${brand.toUpperCase()}`,
-    productLine.toUpperCase(),
-    offerLine.toUpperCase(),
-    loc ? `MILTE HAIN ${loc.toUpperCase()}` : `${brand.toUpperCase()} — YAHIN HAI`,
-    `VISIT ${brand.toUpperCase()} TODAY`,
+    `${productLine.toUpperCase()}!!`,
+    `${offerLine.toUpperCase()}`,
+    loc ? `MILTE HAIN: ${loc.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()} — YAHIN HAI`,
+    `${offerLine.toUpperCase()} — VISIT ${brand.toUpperCase()}!`,
   ] : [
     `${festHook} @ ${brand.toUpperCase()}`,
-    productLine.toUpperCase(),
-    offerLine.toUpperCase(),
-    loc ? `FIND US: ${loc.toUpperCase()}` : `${brand.toUpperCase()}'S HERE`,
-    `VISIT ${brand.toUpperCase()} TODAY`,
+    `${productLine.toUpperCase()}!!`,
+    `${offerLine.toUpperCase()}`,
+    loc ? `${loc.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()}'S HERE`,
+    `${offerLine.toUpperCase()}! HURRY — VISIT ${brand.toUpperCase()}`,
   ]);
 
   const visuals = (hindi ? [
-    `${festLabel || 'Festival'} celebration opening with brand name ${brand} and ${offerLine}.`,
-    `Close-up showcase of ${productLine} at ${brand}.`,
-    `Big ${offerLine} banner with festive decorations.`,
-    loc ? `Storefront with address: ${loc}.` : `Brand storefront of ${brand}.`,
-    `Final call-to-action card: ${brand} — ${offerLine}, ${locLine}.`,
+    `${festLabel || 'Special'} sale opening in slow-mo with confetti, brand name ${brand} and ${offerLine} on screen.`,
+    `Fast cuts showing ${productLine} flying across frame with dynamic camera moves at ${brand}.`,
+    `Explosive ${offerLine} reveal with sparks and countdown urgency, ${brand} logo bounces in.`,
+    loc ? `Zoom into a stylish storefront of ${brand} with big address text: ${loc}.` : `Zoom into the stylish storefront of ${brand}.`,
+    `Final mega call-to-action card: ${brand} — ${offerLine}, ${locLine}, with fire emojis.`,
   ] : [
-    `${festLabel || 'Festival'} celebration opening with brand name ${brand} and ${offerLine}.`,
-    `Close-up showcase of ${productLine} at ${brand}.`,
-    `Big ${offerLine} banner with festive decorations.`,
-    loc ? `Storefront with address: ${loc}.` : `Brand storefront of ${brand}.`,
-    `Final call-to-action card: ${brand} — ${offerLine}, ${locLine}.`,
+    `${festLabel || 'Special'} sale opening in slow-mo with confetti, brand name ${brand} and ${offerLine} on screen.`,
+    `Fast cuts showing ${productLine} flying across frame with dynamic camera moves at ${brand}.`,
+    `Explosive ${offerLine} reveal with sparks and countdown urgency, ${brand} logo bounces in.`,
+    loc ? `Zoom into a stylish storefront of ${brand} with big address text: ${loc}.` : `Zoom into the stylish storefront of ${brand}.`,
+    `Final mega call-to-action card: ${brand} — ${offerLine}, ${locLine}, with fire emojis.`,
   ]);
 
   const hook = `${festHook} @ ${brand}!`;
   const caption = [
-    `${festLabel ? `${festLabel.toUpperCase()} SALE ✨` : 'SPECIAL OFFER ✨'}`,
+    `${festLabel ? `${festLabel.toUpperCase()} SALE 🔥` : 'SPECIAL OFFER 🔥'}`,
     '',
     `🏬 ${brand} — ${productLine}`,
     rawOffer ? `🎁 Offer: ${rawOffer}` : '',
     loc ? `📍 ${loc}` : '',
     '',
-    `Come grab the best deals before they are gone!`,
-    hindi ? 'हिंदी में भी जानकारी चाहिए? Comment karo!' : '',
+    `⏰ Limited time offer — hurry before it's gone!`,
+    `🔥 Double tap if this deal is TOO GOOD to miss!`,
+    hindi ? 'सबसे best deals के लिए follow करें + save करें!' : 'Follow + save for the best deals in town!',
     '',
     ...buildHashtags({ brand, business_type, festival: festLabel, location: loc, style }),
   ].filter((l) => l !== '').join('\n');

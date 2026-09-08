@@ -22,6 +22,7 @@ const createReel = async (req, res, next) => {
       language,
       style,
       goal,
+      voice_preference,
     } = req.body;
 
     if (!business_name || !business_name.trim()) {
@@ -43,6 +44,7 @@ const createReel = async (req, res, next) => {
       language: language || 'English',
       style: style || 'Viral',
       goal: goal || null,
+      voice_preference: voice_preference || 'auto',
       status: 'draft',
     });
 
@@ -93,7 +95,7 @@ const updateReel = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Only draft reels can be edited' });
     }
 
-    const allowed = ['business_name', 'business_type', 'description', 'festival', 'location', 'offer', 'target_audience', 'language', 'style', 'goal'];
+    const allowed = ['business_name', 'business_type', 'description', 'festival', 'location', 'offer', 'target_audience', 'language', 'style', 'goal', 'voice_preference'];
     const fields = {};
     allowed.forEach((k) => {
       if (req.body[k] !== undefined) fields[k] = req.body[k];
@@ -244,7 +246,9 @@ async function runGeneration(reelId, userId) {
   // Step 2: Voice generation
   let voiceUrl = null;
   try {
-    const voiceResult = await voiceService.generateVoice(concept.voiceover, reel.language, {});
+    const voiceResult = await voiceService.generateVoice(concept.voiceover, reel.language, {
+      voice: reel.voice_preference || 'auto',
+    });
     if (voiceResult.url) {
       voiceUrl = voiceResult.url;
     }

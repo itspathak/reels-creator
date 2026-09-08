@@ -3,14 +3,29 @@
  * Abstraction layer for text-to-speech providers.
  * Currently supports: ElevenLabs (when configured), Mock (demo mode).
  *
- * To switch providers, change the implementation inside generateVoice().
+ * voiceSettings.voice = 'male' | 'female' | 'child' | 'auto'
  */
+
+const EDGE_VOICES = {
+  English: { auto: 'en-US-JennyNeural', male: 'en-US-GuyNeural', female: 'en-US-JennyNeural', child: 'en-US-MichelleNeural' },
+  Hindi: { auto: 'hi-IN-SwaraNeural', male: 'hi-IN-MadhurNeural', female: 'hi-IN-SwaraNeural', child: 'hi-IN-SwaraNeural' },
+  Gujarati: { auto: 'gu-IN-DhwaniNeural', male: 'gu-IN-NiranjanNeural', female: 'gu-IN-DhwaniNeural', child: 'gu-IN-DhwaniNeural' },
+  Hinglish: { auto: 'hi-IN-SwaraNeural', male: 'hi-IN-MadhurNeural', female: 'hi-IN-SwaraNeural', child: 'hi-IN-SwaraNeural' },
+};
+
+function pickEdgeVoice(language, voicePref) {
+  const map = EDGE_VOICES[language] || EDGE_VOICES.English;
+  const pref = ['male', 'female', 'child'].includes(String(voicePref || '').toLowerCase())
+    ? String(voicePref).toLowerCase()
+    : 'auto';
+  return map[pref] || map.auto;
+}
 
 async function generateVoice(text, language, voiceSettings = {}) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
 
   if (!apiKey) {
-    return generateLocalVoice(text, language);
+    return generateLocalVoice(text, language, voiceSettings);
   }
 
   return generateElevenLabsVoice(text, language, voiceSettings);
@@ -20,13 +35,17 @@ async function generateElevenLabsVoice(text, language, voiceSettings) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
 
   const voiceMap = {
-    English: 'Rachel',
-    Hindi: 'Rachel',
-    Gujarati: 'Rachel',
-    Hinglish: 'Rachel',
+    English: { auto: 'Rachel', male: 'Adam', female: 'Rachel', child: 'Rachel' },
+    Hindi: { auto: 'Rachel', male: 'Adam', female: 'Rachel', child: 'Rachel' },
+    Gujarati: { auto: 'Rachel', male: 'Adam', female: 'Rachel', child: 'Rachel' },
+    Hinglish: { auto: 'Rachel', male: 'Adam', female: 'Rachel', child: 'Rachel' },
   };
 
-  const voiceName = voiceSettings.voiceName || voiceMap[language] || 'Rachel';
+  const pref = ['male', 'female', 'child'].includes(String(voiceSettings.voice || '').toLowerCase())
+    ? String(voiceSettings.voice).toLowerCase()
+    : 'auto';
+  const candidate = voiceSettings.voiceName || (voiceMap[language] || voiceMap.English)[pref] || 'Rachel';
+  const voiceName = candidate;
 
   const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceName, {
     method: 'POST',
@@ -83,31 +102,45 @@ function generateMockVoice(text, language) {
  */
 const PYTHON_BIN = process.env.PYTHON_PATH || 'C:/Users/ADMIN/AppData/Local/Temp/opencode/py/dist/python.exe';
 
-const EDGE_VOICES = {
-  English: 'en-US-JennyNeural',
-  Hindi: 'hi-IN-SwaraNeural',
-  Gujarati: 'gu-IN-DhwaniNeural',
-  Hinglish: 'hi-IN-MadhurNeural',
-};
-
-function generateLocalVoice(text, language) {
+function generateLocalVoice(text, language, voiceSettings = {}) {
   const { spawnSync } = require('child_process');
   const fs = require('fs');
   const path = require('path');
 
   if (!text || !String(text).trim()) return { url: null, filename: null, demo: true };
 
+  const pref = ['male', 'female', 'child'].includes(String(voiceSettings.voice || '').toLowerCase())
+    ? String(voiceSettings.voice).toLowerCase()
+    : 'auto';
+  const voice = pickEdgeVoice(language, pref);
+
+  const rates = { auto: '+8%', male: '+5%', female: '+8%', child: '+12%' };
+  const pitches = { auto: '+8Hz', male: '-6Hz', female: '+8Hz', child: '+38Hz' };
+
+  const rate = rates[pref] || rates.auto;
+  const pitch = pitches[pref] || pitches.auto;
   const stamp = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
   const outMp3 = path.join(__dirname, '../../uploads', `voice-${stamp}.mp3`);
   const outWav = path.join(__dirname, '../../uploads', `voice-${stamp}.wav`);
-  const voice = EDGE_VOICES[language] || EDGE_VOICES.English;
   const cleanText = String(text).replace(/[\r\n]+/g, ' ');
 
-  const edge = spawnSync(
-    PYTHON_BIN,
-    ['-m', 'edge_tts', '--voice', voice, '--rate=+8%', '--pitch=+10Hz', '--text', cleanText, '--write-media', outMp3],
-    { timeout: 90000, encoding: 'utf8' }
-  );
+  const edge = (() => {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const res = spawnSync(
+        PYTHON_BIN,
+        ['-m', 'edge_tts', '--voice', voice, '--rate=' + rate, '--pitch=' + pitch, '--text', cleanText, '--write-media', outMp3],
+        { timeout: 90000, encoding: 'utf8' }
+      );
+      if (res.status === 0 && fs.existsSync(outMp3) && fs.statSync(outMp3).size > 2000) {
+        return res;
+      }
+      if (attempt < 3) {
+        console.warn(`[VoiceService] edge-tts attempt ${attempt} failed (${res.error?.message || 'silent'}), retrying…`);
+        try { if (fs.existsSync(outMp3)) fs.unlinkSync(outMp3); } catch {}
+      }
+    }
+    return { status: -1, error: new Error('edge-tts failed after 3 attempts') };
+  })();
 
   if (edge.status === 0 && fs.existsSync(outMp3) && fs.statSync(outMp3).size > 2000) {
     console.log(`[VoiceService] Edge neural narration (${voice}): ${path.basename(outMp3)}`);
