@@ -369,6 +369,12 @@ h1, h2, h3, h4 {
   background: linear-gradient(90deg, var(--primary), var(--accent));
   transition: width 0.5s ease;
 }
+.progress-fill.indeterminate { animation: indeterminate-slide 1s ease-in-out infinite; }
+@keyframes indeterminate-slide {
+  0% { margin-left: -40%; width: 40%; }
+  100% { margin-left: 100%; width: 40%; }
+}
+.dl-meta { margin-top: 10px; font-size: 13px; color: var(--text-muted); }
 
 /* ---------- Video frame ---------- */
 .phone-frame {

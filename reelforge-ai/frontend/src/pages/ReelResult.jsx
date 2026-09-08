@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api, API_URL_BASE } from '../services/api.js';
+import { api, API_URL_BASE, getToken } from '../services/api.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { Spinner, Skeleton } from '../components/Loaders.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
@@ -44,6 +44,10 @@ export default function ReelResult() {
   const [activeTab, setActiveTab] = useState('script');
   const [regenerating, setRegenerating] = useState(false);
   const [showRegen, setShowRegen] = useState(false);
+  const [dl, setDl] = useState(null);
+  const dlRef = useRef(null);
+
+  const mb = (b) => (b / (1024 * 1024)).toFixed(1);
 
   useEffect(() => {
     api
@@ -78,15 +82,47 @@ export default function ReelResult() {
     }
   };
 
-  const download = () => {
-    if (reel.video_url) {
-      const a = document.createElement('a');
-      a.href = reel.video_url.startsWith('http') ? reel.video_url : API_BASE + reel.video_url;
-      a.download = `${reel.business_name.replace(/\s+/g, '_')}_reel.mp4`;
-      a.target = '_blank';
-      a.click();
-    } else {
+  const download = async () => {
+    if (!reel.video_url) {
       showToast('No video file available yet. Connect a video provider or check generation status.', 'info');
+      return;
+    }
+    const url = reel.video_url.startsWith('http') ? reel.video_url : API_BASE + reel.video_url;
+    const filename = `${(reel.business_name || 'reel').replace(/\s+/g, '_')}_reel.mp4`;
+    const controller = new AbortController();
+    dlRef.current = controller;
+    setDl({ percent: 0, received: 0, total: 0, filename, done: false, error: null });
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${getToken()}` }, signal: controller.signal });
+      if (!res.ok) throw new Error(`Download failed (${res.status})`);
+      const total = Number(res.headers.get('Content-Length')) || 0;
+      const reader = res.body.getReader();
+      const chunks = [];
+      let received = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        setDl({ percent: total ? Math.min(99, Math.round((received / total) * 100)) : -1, received, total, filename, done: false, error: null });
+      }
+      const blob = new Blob(chunks, { type: 'video/mp4' });
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+      setDl({ percent: 100, received, total, filename, done: true, error: null });
+      showToast('Download complete');
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      setDl((d) => (d ? { ...d, error: err.message || 'Download failed' } : null));
+      showToast(err.message || 'Download failed', 'error');
+    } finally {
+      dlRef.current = null;
     }
   };
 
@@ -166,7 +202,7 @@ export default function ReelResult() {
           <div className="result-actions">
             <button className="btn btn-primary" onClick={download}>⬇ Download Reel</button>
             <button className="btn btn-secondary" onClick={() => navigate('/dashboard/create')}>+ Create Another</button>
-            <button className="btn btn-secondary" onClick={() => navigate(`/dashboard/reels/${id}/generating`)}>✏️ Edit Reel</button>
+            <button className="btn btn-secondary" onClick={() => navigate(`/dashboard/create?reel=${id}`)}>✏️ Edit Reel</button>
             <button className="btn btn-secondary" onClick={share}>🔗 Share</button>
           </div>
         </div>
@@ -229,6 +265,40 @@ export default function ReelResult() {
         onConfirm={doRegenerate}
         onCancel={() => setShowRegen(false)}
       />
+
+      {dl && (
+        <div className="modal-overlay" onClick={() => { if (dl.done || dl.error) setDl(null); }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{dl.done ? 'Download complete' : 'Downloading Reel'}</h3>
+            <p style={{ marginBottom: 12, wordBreak: 'break-all' }}>{dl.filename}</p>
+            <div className="progress">
+              <div
+                className={`progress-fill ${dl.percent === -1 ? 'indeterminate' : ''}`}
+                style={{ width: dl.percent === -1 ? '40%' : `${dl.percent}%` }}
+              />
+            </div>
+            <div className="dl-meta">
+              {dl.error ? (
+                <span style={{ color: 'var(--danger)' }}>{dl.error}</span>
+              ) : dl.done ? (
+                <span>✓ Done — saved to your Downloads</span>
+              ) : dl.percent === -1 ? (
+                <span>Starting download…</span>
+              ) : (
+                <span>{dl.percent}% · {mb(dl.received)}{dl.total ? ` / ${mb(dl.total)} MB` : ' MB'}</span>
+              )}
+            </div>
+            <div className="modal-actions">
+              {!dl.done && !dl.error && (
+                <button className="btn btn-secondary" onClick={() => { dlRef.current && dlRef.current.abort(); setDl(null); }}>Cancel</button>
+              )}
+              {(dl.done || dl.error) && (
+                <button className="btn btn-primary" onClick={() => setDl(null)}>Close</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
