@@ -73,6 +73,15 @@ Rules:
 - Each scene duration should be 2-4 seconds.
 - Hashtags: generate 10-15 relevant Instagram hashtags (no # prefix).
 - The tone must match the reel style ("Viral" = energetic, "Luxury" = elegant, "Funny" = playful, "Premium" = refined, "Minimal" = clean, "Promotional" = action-oriented, "Festive" = celebratory).
+
+CLARITY RULES (most important — the viewer must instantly understand the reel):
+- Every scene must clearly identify the business: always include the business name and what the business sells/offers (business type + description, e.g. "jeans & shirts", "cafe", "sweet shop").
+- Scene 1 (hook) must contain BOTH the brand name AND the offer (if provided) or festival occasion (if provided), e.g. "Diwali Sale at Star Fashion".
+- Scene 3 (offer scene) must repeat the exact offer or a festival occasion if the offer is missing.
+- Scene 4 (location scene) must show the exact location/address.
+- Scene 5 (CTA) must repeat brand name + location.
+- Repeat the offer in at least 2 different scenes, and the brand name in every scene's text overlay.
+- Never leave the text overlay generic (no "Big Sale" or "Visit us" without naming the brand, offer, or location).
 - Return ONLY the JSON object, no explanation.`;
 
   const completion = await openai.chat.completions.create({
@@ -106,187 +115,177 @@ function validateConcept(data) {
 }
 
 function generateMockConcept(business) {
-  const { business_name, business_type, offer, style, location, target_audience, festival } = business;
-  const hindi = ['Hindi', 'Hinglish', 'Gujarati'].includes(business.language);
-  const cat = String(business_type || '').toLowerCase();
+  const {
+    business_name,
+    business_type,
+    description,
+    festival,
+    location,
+    offer,
+    target_audience,
+    language,
+    style,
+    goal,
+  } = business;
+
+  const brand = String(business_name || '').trim() || 'Our Store';
+  const hindi = ['Hindi', 'Hinglish', 'Gujarati', 'Marathi'].includes(String(language || '').trim());
+  const cat = String(business_type || '') + ' ' + String(description || '');
+  const catLower = cat.toLowerCase();
   const fes = String(festival || '').toLowerCase();
+  const loc = String(location || '').trim();
+  const rawOffer = String(offer || '').trim().replace(/[.]+$/, '');
+  const festLabel = festLabelFor(fes);
 
-  const CATEGORY_COPY = {
-    food: {
-      visuals: ['Steaming food close-up', 'Signature dish showcase', 'Chef handcrafting food', 'Happy customers enjoying'],
-      texts: ['TASTES LIKE LOVE', 'FRESH & HOT', 'MADE WITH HEART', 'JUST FOR YOU'],
-      v: [
-        'Fresh, hot and full of flavour — this is what happiness tastes like.',
-        'Every bite is made with love and the freshest ingredients.',
-        'One taste and you will know why everyone keeps coming back.',
-        'Your cravings have found their home.',
-      ],
-    },
-    fashion: {
-      visuals: ['Stylish outfit showcases', 'New collection reveal', 'Trendy color palette', 'Star styling moment'],
-      texts: ['TREND ALERT', 'NEW LOOK', 'STYLE ICON', 'SHOP THE VIBE'],
-      v: [
-        'Your style just got an upgrade — the new collection is here.',
-        'Look stunning in every single frame with our latest designs.',
-        'Fashion that speaks before you say a word.',
-        'Walk in. Shine out. That is the new you.',
-      ],
-    },
-    gym: {
-      visuals: ['Intense workout moment', 'Energy and sweat', 'Transformation power', 'Push through the limit'],
-      texts: ['NO PAIN NO GAIN', 'GET STRONGER', 'YOUR BEST SELF', 'SHOW UP EVERY DAY'],
-      v: [
-        'Sweat now. Shine later. This is where champions are made.',
-        'Every rep brings you one step closer to your best self.',
-        'Discipline beats motivation, every single time.',
-        'Your body can handle it. Your mind just has to believe.',
-      ],
-    },
-    beauty: {
-      visuals: ['Glowing skin moment', 'Makeover transformation', 'Spa-like relaxation', 'Glow up reveal'],
-      texts: ['GLOW UP', 'RADIANT YOU', 'FEEL AMAZING', 'BOOK YOUR SESSION'],
-      v: [
-        'Good skin is not an accident — it is a routine. And we have perfected it.',
-        'Walk in tired. Walk out glowing. That is the transformation.',
-        'A little self-care today, a glowing tomorrow.',
-        'You deserve to feel this good. Every single day.',
-      ],
-    },
-    tech: {
-      visuals: ['Latest gadgets revealed', 'Sleek device showcase', 'Fast performance demo', 'Upgrade your setup'],
-      texts: ['NEXT LEVEL TECH', 'FAST. SMART. NEW.', 'UPGRADE NOW', 'FUTURE IS HERE'],
-      v: [
-        'Meet the tech that will change the way you work and play.',
-        'Speed, style and power — all in one stunning device.',
-        'Stop settling. Upgrade to the experience you deserve.',
-        'The future is here. Be the first to own it.',
-      ],
-    },
-    travel: {
-      visuals: ['Breathtaking mountain view', 'Golden sun peeking over hills', 'Misty valley morning', 'Winding hill roads'],
-      texts: ['ESCAPE THE ORDINARY', 'NATURE CALLS', 'FIND YOUR PEACE', 'PACK YOUR BAGS'],
-      v: [
-        'Somewhere between the clouds and the mountains, peace is waiting.',
-        'Wake up to fresh air, green valleys and views that steal your breath.',
-        'The best views are always at the end of the hardest roads.',
-        'Book your escape. The mountains are calling you home.',
-      ],
-    },
-  };
+  // --- what the business SELLS, derived from type + description ---
+  const productLine = productLineFor(catLower);
 
-  const FESTIVE_LINES = {
-    diwali: {
-      texts: ['SHUBH DIWALI', 'FESTIVAL OF LIGHTS', 'LIGHT UP YOUR DAY', 'DIVALI SPECIAL'],
-      v: [
-        'This Diwali, light up your home and your heart with joy.',
-        'May the festival of lights bring you happiness and good fortune.',
-        'Celebrate with family, sweets and memories that shine forever.',
-        'Wishing you a Diwali that sparkles like a thousand diyas.',
-      ],
-    },
-    navratri: {
-      texts: ['NAVRATRI SPECIAL', 'DAK TO HASHTAG', 'GARBA NIGHTS', 'NAMBA SHIVAM IT'],
-      v: [
-        'Nine nights of dance, colors and pure energy — Navratri has arrived.',
-        'Garba night vibes, festive colors and joy around every corner.',
-        'Come alive with the rhythm of the dhol this Navratri.',
-        'Celebrate the divine with us this Navratri, with open hearts.',
-      ],
-    },
-  };
+  // --- concrete offer: user offer, else festive fallback, else generic ---
+  let offerLine;
+  if (rawOffer) {
+    offerLine = rawOffer;
+  } else if (festLabel) {
+    offerLine = `${festLabel} Sale — khaas offers abhi`;
+  } else {
+    offerLine = `Special Offers`;
+  }
 
-  const catKey = ['food', 'fashion', 'gym', 'beauty', 'tech'].find((k) => cat.includes(k)) || (/(travel|hill|nature|mountain|resort|tour|forest|lake|beach|trek)/.test(cat) ? 'travel' : 'general');
-  const festKey = ['diwali', 'navratri'].find((k) => fes.includes(k)) || (/(holi|christmas|new.?year)/.test(fes) ? fes.replace(/[^a-z]/g, '').replace('newyear', 'diwali') : null);
+  // --- location line for the CTA ---
+  const locLine = loc ? loc : 'hamari dukaan par';
 
-  const cc = CATEGORY_COPY[catKey] || {
-    visuals: ['Dynamic brand moment', 'Signature offering', 'Happy customers', 'Strong call to action'],
-    texts: [String(business_name).toUpperCase(), 'BEST IN TOWN', 'YOU DESERVE THE BEST', String(offer ? offer.toUpperCase() : 'VISIT US TODAY')],
-    v: [
-      `Welcome to ${business_name} — where quality always comes first.`,
-      `At ${business_name}, we put real care into everything we do.`,
-      `Why settle for less when you can have the best?`,
-      `Come and experience it yourself at ${business_name}.`,
-    ],
-  };
-  const fl = festKey ? FESTIVE_LINES[festKey] : null;
+  // --- festival greeting for the hook ---
+  const festHook = festLabel ? `${festLabel.toUpperCase()} SALE` : 'SPECIAL SALE';
 
-  const sceneThemes = fl || cc;
-  const quick = hindi ? 'Jaldi se aajaiye aur visit kijiye!' : 'Come quick — grab it before it is gone!';
-  const offerLine = offer ? String(offer).trim().replace(/[.]+$/, '') : null;
-  const v1 = fl ? fl.v[0] : cc.v[0];
-  const v2 = fl ? fl.v[1] : cc.v[1];
-  const v3 = fl ? fl.v[2] : cc.v[2];
-  const v4 = hindi ? 'Abhi mauka mat chhodiye!' : 'Do not miss this chance!';
-  const v5 = `${offerLine ? offerLine + '. ' : ''}${quick} Visit ${business_name}${location ? ' at ' + location : ''} today!`;
+  // --- voiceover lines (specific to brand/product/offer/location) ---
+  const vo = (hindi ? [
+    `${festLabel ? `Is ${festLabel} ke khaas offers ${brand} par! ` : ''}${offerLine} — ${productLine} aapka intezaar kar rahe hain.`,
+    `${brand} mein milenge ${productLine}. Quality jispe aap bharosa kar sakte hain.`,
+    `${offerLine}. ${festLabel ? 'Tyohaar ka maza lag jayega' : 'Aapke budget ke andar hi'} — ${brand} par hi.`,
+    `Milte hain ${locLine}. ${brand} yahin hai.`,
+    `${offerLine}. ${locLine}. ${hindi ? 'Aaj hi aaiye' : 'Visit us today'} — ${brand}!`,
+  ] : [
+    `${festLabel ? `Festive offers are here! ` : ''}${offerLine} on ${productLine} — only at ${brand}.`,
+    `${brand} brings you quality you can trust.`,
 
-  const hook = fl
-    ? `${fl.texts[0]} at ${business_name}!`
-    : offerLine
-      ? `${offerLine} at ${business_name}!`
-      : `Why ${business_name} is the Best`;
-  const visuals = fl ? cc.visuals : cc.visuals;
+    `${offerLine} — grab it before it is gone, only at ${brand}.`,
+    `Find us at ${locLine}. ${brand} is right here.`,
+    `${offerLine}. ${locLine}. Visit ${brand} today!`,
+  ]);
+
+  const texts = (hindi ? [
+    `${festHook} @ ${brand.toUpperCase()}`,
+    productLine.toUpperCase(),
+    offerLine.toUpperCase(),
+    loc ? `MILTE HAIN ${loc.toUpperCase()}` : `${brand.toUpperCase()} — YAHIN HAI`,
+    `VISIT ${brand.toUpperCase()} TODAY`,
+  ] : [
+    `${festHook} @ ${brand.toUpperCase()}`,
+    productLine.toUpperCase(),
+    offerLine.toUpperCase(),
+    loc ? `FIND US: ${loc.toUpperCase()}` : `${brand.toUpperCase()}'S HERE`,
+    `VISIT ${brand.toUpperCase()} TODAY`,
+  ]);
+
+  const visuals = (hindi ? [
+    `${festLabel || 'Festival'} celebration opening with brand name ${brand} and ${offerLine}.`,
+    `Close-up showcase of ${productLine} at ${brand}.`,
+    `Big ${offerLine} banner with festive decorations.`,
+    loc ? `Storefront with address: ${loc}.` : `Brand storefront of ${brand}.`,
+    `Final call-to-action card: ${brand} — ${offerLine}, ${locLine}.`,
+  ] : [
+    `${festLabel || 'Festival'} celebration opening with brand name ${brand} and ${offerLine}.`,
+    `Close-up showcase of ${productLine} at ${brand}.`,
+    `Big ${offerLine} banner with festive decorations.`,
+    loc ? `Storefront with address: ${loc}.` : `Brand storefront of ${brand}.`,
+    `Final call-to-action card: ${brand} — ${offerLine}, ${locLine}.`,
+  ]);
+
+  const hook = `${festHook} @ ${brand}!`;
+  const caption = [
+    `${festLabel ? `${festLabel.toUpperCase()} SALE ✨` : 'SPECIAL OFFER ✨'}`,
+    '',
+    `🏬 ${brand} — ${productLine}`,
+    rawOffer ? `🎁 Offer: ${rawOffer}` : '',
+    loc ? `📍 ${loc}` : '',
+    '',
+    `Come grab the best deals before they are gone!`,
+    hindi ? 'हिंदी में भी जानकारी चाहिए? Comment karo!' : '',
+    '',
+    ...buildHashtags({ brand, business_type, festival: festLabel, location: loc, style }),
+  ].filter((l) => l !== '').join('\n');
 
   return {
     hook,
-    concept: `A ${style || 'viral'} style reel for ${business_name}${festKey ? ' celebrating ' + festKey : ''} — ${catKey}${location ? ' in ' + location : ''} — ${fl ? fl.texts[0] : offerLine || 'showcasing what makes them special'}.`,
+    concept: `A ${style || 'viral'} Diwali/festive reel for ${brand} (${business_type}) — selling ${productLine}, offering ${offerLine}, located at ${locLine}. Clear hook, offer, location and CTA.`,
     scenes: [
-      {
-        scene: 1,
-        duration: 3,
-        visual: (fl ? `${fl.texts[0]} celebration. ` : '') + visuals[0],
-        text: fl ? fl.texts[0] : (offerLine ? offerLine.toUpperCase() : cc.texts[0]),
-        voiceover: v1,
-      },
-      {
-        scene: 2,
-        duration: 3,
-        visual: visuals[1],
-        text: cc.texts[1],
-        voiceover: v2,
-      },
-      {
-        scene: 3,
-        duration: 3,
-        visual: visuals[2],
-        text: fl ? fl.texts[2] : cc.texts[2],
-        voiceover: v3,
-      },
-      {
-        scene: 4,
-        duration: 3,
-        visual: visuals[3],
-        text: 'Why wait?',
-        voiceover: v4,
-      },
-      {
-        scene: 5,
-        duration: 3,
-        visual: `Call to action screen with business name and${location ? ' ' + location : ''}.`,
-        text: offerLine ? `${offerLine} — Come Quick!` : `Visit ${business_name} Today`,
-        voiceover: v5,
-      },
+      { scene: 1, duration: 3, visual: visuals[0], text: texts[0], voiceover: vo[0] },
+      { scene: 2, duration: 3, visual: visuals[1], text: texts[1], voiceover: vo[1] },
+      { scene: 3, duration: 3, visual: visuals[2], text: texts[2], voiceover: vo[2] },
+      { scene: 4, duration: 3, visual: visuals[3], text: texts[3], voiceover: vo[3] },
+      { scene: 5, duration: 3, visual: visuals[4], text: texts[4], voiceover: vo[4] },
     ],
-    voiceover: [v1, v2, v3, v4, v5].join(' '),
-    caption: `${fl ? fl.texts[0] + ' ✨' : '✨ ' + hook}\n\n${offerLine ? '🎁 ' + offerLine + '\n\n' : ''}${festKey ? '#festivevibes\n\n' : ''}📍${location ? ' ' + location : ''} | 📲 Follow us for more\n\nDouble tap if you would visit! 👇`,
-    cta: `${quick} ${offerLine ? offerLine + '. ' : ''}Visit ${business_name}${location ? ' at ' + location : ''}!`,
-    hashtags: [
-      business_name.toLowerCase().replace(/[^a-z0-9]/g, ''),
-      business_type ? business_type.toLowerCase().replace(/[^a-z0-9]/g, '') : 'business',
-      festKey || 'reels',
-      festKey ? `${festKey}special` : 'instagramreels',
-      'ai',
-      'smallbusiness',
-      'localbusiness',
-      'supportlocal',
-      'viralreels',
-      (style || 'viral').toLowerCase() + 'style',
-      'marketing',
-      'contentcreator',
-      'branding',
-      'followus',
-      'reelstrending',
-    ],
+    voiceover: vo.join(' '),
+    caption,
+    cta: `${offerLine}. ${locLine}. Visit ${brand} today!`,
+    hashtags: buildHashtags({ brand, business_type, festival: festLabel, location: loc, style }),
   };
+}
+
+function festLabelFor(fes) {
+  if (!fes) return null;
+  if (/diwali|divali|deepavali/.test(fes)) return 'Diwali';
+  if (/navratri/.test(fes)) return 'Navratri';
+  if (/holi/.test(fes)) return 'Holi';
+  if (/christmas|xmas/.test(fes)) return 'Christmas';
+  if (/new.?year/.test(fes)) return 'New Year';
+  if (/eid|ramzan/.test(fes)) return 'Eid';
+  return fes.charAt(0).toUpperCase() + fes.slice(1);
+}
+
+function productLineFor(catLower) {
+  const RULES = [
+    [/jean|denim|cloth|garment|outlet|wear|shirt|kurta|saree|fashion|boutique|stitch/i, 'jeans, shirts, kurtas aur kurtis'],
+    [/restaurant|cafe|hotel|food|dhaba|thali|kitchen|chef/i, 'khaas thalis aur signature dishes'],
+    [/sweet|mithai|cake|bakery|chocolate/i, 'fresh mithai aur bakery treats'],
+    [/gym|fitness|yoga|workout|health club/i, 'premium fitness plans aur workout gear'],
+    [/beauty|salon|spa|make|skin|parlour/i, 'glow-up makeovers aur skin care'],
+    [/jewellery|jewelry|gold|kundan|ornament|silver/i, 'shining jewellery collections'],
+    [/electronic|mobile|phone|laptop|gadget|tv|led/i, 'latest gadgets aur electronics'],
+    [/gift|decor|home|furniture|lamp|lighting/i, 'stylish decor aur gift ideas'],
+    [/grocery|supermarket|kirana|fresh mart/i, 'fresh groceries aur daily essentials'],
+    [/travel|tour|hotel|resort|booking/i, 'unforgettable travel packages'],
+    [/stationery|books|school|office/i, 'stationery aur office essentials'],
+    [/pharmacy|medical|ayurved|medicine/i, 'trusted health aur wellness products'],
+  ];
+  for (const [re, line] of RULES) {
+    if (re.test(catLower)) return line;
+  }
+  return 'premium quality products';
+}
+
+function buildHashtags({ brand, business_type, festival, location, style }) {
+  const tags = new Set();
+  const add = (t) => {
+    const clean = String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (clean) tags.add(clean);
+  };
+  add(brand);
+  add(business_type);
+  add(festival);
+  add(`${festival}${festival ? 'sale' : ''}`);
+  add('diwalisale');
+  add(festival && festival.toLowerCase() === 'diwali' ? 'happy diwali' : 'festiveoffers');
+  add(location ? String(location).split(/[\s,]+/)[0] : '');
+  add(style);
+  add('reels');
+  add('viralreels');
+  add('instareels');
+  add('smallbusiness');
+  add('supportlocal');
+  add('bestdeals');
+  add('offers');
+  ['reelitfeelit', 'explorepage', 'trendingreels', 'shopping', 'freshstart'].forEach(add);
+  return [...tags].slice(0, 15);
 }
 
 module.exports = { generateReelConcept };
