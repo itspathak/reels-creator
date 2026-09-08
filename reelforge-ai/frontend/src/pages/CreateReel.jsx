@@ -65,6 +65,8 @@ export default function CreateReel() {
     description: '',
     festival: '',
     location: '',
+    shop_number: '',
+    address: '',
     offer: '',
     target_audience: '',
     language: 'English',
@@ -92,6 +94,8 @@ export default function CreateReel() {
           description: r.description || '',
           festival: r.festival || '',
           location: r.location || '',
+          shop_number: r.shop_number || '',
+          address: r.address || '',
           offer: r.offer || '',
           target_audience: r.target_audience || '',
           language: r.language || 'English',
@@ -121,6 +125,8 @@ export default function CreateReel() {
       description: form.description,
       festival: form.festival,
       location: form.location,
+      shop_number: form.shop_number,
+      address: form.address,
       offer: form.offer,
       target_audience: form.target_audience,
       language: form.language,
@@ -296,6 +302,16 @@ export default function CreateReel() {
                 <div className="field">
                   <label>Location</label>
                   <input className="input" placeholder="City, area" value={form.location} onChange={set('location')} />
+                  <div className="field-row">
+                    <div>
+                      <label>Shop / Unit Number</label>
+                      <input className="input" placeholder="Shop No. 12" value={form.shop_number} onChange={set('shop_number')} />
+                    </div>
+                    <div>
+                      <label>Full Address</label>
+                      <input className="input" placeholder="MG Road, Opp. Central Mall" value={form.address} onChange={set('address')} />
+                    </div>
+                  </div>
                 </div>
                 <div className="field">
                   <label>Special Offer</label>
@@ -399,6 +415,9 @@ export default function CreateReel() {
                 <div className="summary-item"><div className="k">Business Type</div><div className="v">{form.business_type}</div></div>
                 <div className="summary-item"><div className="k">Festival / Theme</div><div className="v">{form.festival || 'None'}</div></div>
                 <div className="summary-item"><div className="k">Location</div><div className="v">{form.location || '—'}</div></div>
+                {form.shop_number || form.address ? (
+                  <div className="summary-item"><div className="k">Address</div><div className="v">{[form.shop_number, form.address].filter(Boolean).join(', ')}</div></div>
+                ) : null}
                 <div className="summary-item"><div className="k">Special Offer</div><div className="v">{form.offer || '—'}</div></div>
                 <div className="summary-item"><div className="k">Target Audience</div><div className="v">{form.target_audience || '—'}</div></div>
                 <div className="summary-item"><div className="k">Description</div><div className="v">{form.description || '—'}</div></div>

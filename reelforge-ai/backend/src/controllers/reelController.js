@@ -17,6 +17,8 @@ const createReel = async (req, res, next) => {
       description,
       festival,
       location,
+      shop_number,
+      address,
       offer,
       target_audience,
       language,
@@ -39,6 +41,8 @@ const createReel = async (req, res, next) => {
       description: description || null,
       festival: festival || null,
       location: location || null,
+      shop_number: shop_number || null,
+      address: address || null,
       offer: offer || null,
       target_audience: target_audience || null,
       language: language || 'English',
@@ -95,7 +99,7 @@ const updateReel = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Only draft reels can be edited' });
     }
 
-    const allowed = ['business_name', 'business_type', 'description', 'festival', 'location', 'offer', 'target_audience', 'language', 'style', 'goal', 'voice_preference'];
+    const allowed = ['business_name', 'business_type', 'description', 'festival', 'location', 'shop_number', 'address', 'offer', 'target_audience', 'language', 'style', 'goal', 'voice_preference'];
     const fields = {};
     allowed.forEach((k) => {
       if (req.body[k] !== undefined) fields[k] = req.body[k];

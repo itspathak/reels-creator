@@ -3,8 +3,8 @@ const pool = require('../db');
 const Reel = {
   async create(data) {
     const [result] = await pool.execute(
-      `INSERT INTO reels (user_id, business_name, business_type, description, festival, location, offer, target_audience, language, style, goal, voice_preference, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO reels (user_id, business_name, business_type, description, festival, location, shop_number, address, offer, target_audience, language, style, goal, voice_preference, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.user_id,
         data.business_name,
@@ -12,6 +12,8 @@ const Reel = {
         data.description || null,
         data.festival || null,
         data.location || null,
+        data.shop_number || null,
+        data.address || null,
         data.offer || null,
         data.target_audience || null,
         data.language || 'English',

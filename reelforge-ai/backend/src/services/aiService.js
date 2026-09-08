@@ -121,6 +121,8 @@ function generateMockConcept(business) {
     description,
     festival,
     location,
+    shop_number,
+    address,
     offer,
     target_audience,
     language,
@@ -134,6 +136,8 @@ function generateMockConcept(business) {
   const catLower = cat.toLowerCase();
   const fes = String(festival || '').toLowerCase();
   const loc = String(location || '').trim();
+  const shopNo = String(shop_number || '').trim();
+  const addr = String(address || '').trim();
   const rawOffer = String(offer || '').trim().replace(/[.]+$/, '');
   const festLabel = festLabelFor(fes);
 
@@ -150,8 +154,13 @@ function generateMockConcept(business) {
     offerLine = `Special Offers`;
   }
 
-  // --- location line for the CTA ---
-  const locLine = loc ? loc : 'hamari dukaan par';
+  // --- full address line: shop number + street/area + location (city) ---
+  const addrParts = [];
+  if (shopNo) addrParts.push(shopNo);
+  if (addr) addrParts.push(addr);
+  if (loc) addrParts.push(loc);
+  const fullAddr = addrParts.join(', ');
+  const locLine = fullAddr || 'hamari dukaan par';
 
   // --- festival greeting for the hook ---
   const festHook = festLabel ? `${festLabel.toUpperCase()} SALE` : 'SPECIAL SALE';
@@ -161,42 +170,42 @@ function generateMockConcept(business) {
     `${festLabel ? `Haan, ${festLabel} ka mauka aa gaya! ` : 'Rukna mat, deal aa gayi! '}${offerLine} — sirf ${brand} par, aur khaas ${productLine} ke saath.`,
     `${brand} mein ${productLine} ka dhamaka! Quality, style aur shaandaar offers — sab kuch ek hi jagah.`,
     `${offerLine}. ${festLabel ? 'Tyohaar ka maza ab double! ' : 'Budget mein hi full maza! '}Time limited hai — jitni der me dhyan se dekho, deal puri ho jayegi!`,
-    loc ? `Store chale jao — ${loc}. ${brand} yahin hai, aur offer paas mein hi!` : `Store chale jao — ${brand} yahin hai, aur offer paas mein hi!`,
-    `Ek last reminder! ${offerLine}, ${locLine}. ${hindi ? 'Aaj hi aaiye' : 'Visit us today'} — ${brand}!`,
+    fullAddr ? `Store chale jao — ${fullAddr}. ${brand} yahin hai, aur offer paas mein hi!` : `Store chale jao — ${brand} yahin hai, aur offer paas mein hi!`,
+    `Ek last reminder! ${offerLine}, address hain ${fullAddr}. ${hindi ? 'Aaj hi aaiye' : 'Visit us today'} — ${brand}!`,
   ] : [
     `${festLabel ? `Hey, it's ${festLabel} time! ` : 'Wait, the deal is here! '}${offerLine} on ${productLine} — only at ${brand}.`,
     `${brand} is serving up the best ${productLine} with style, quality and crazy-good offers.`,
     `${offerLine}! ${festLabel ? 'Make this festive season special. ' : 'Big on value, easy on budget. '}Limited time — hurry before it is gone!`,
-    loc ? `Head over to ${loc}. ${brand} is right here, deals are waiting!` : `Head over to the store — ${brand} is right here, deals are waiting!`,
-    `One last reminder! ${offerLine}, ${locLine}. Visit ${brand} today!`,
+    fullAddr ? `Head over to ${fullAddr}. ${brand} is right here, deals are waiting!` : `Head over to the store — ${brand} is right here, deals are waiting!`,
+    `One last reminder! ${offerLine}. Find us at ${fullAddr}. Visit ${brand} today!`,
   ]);
 
   const texts = (hindi ? [
     `${festHook} @ ${brand.toUpperCase()}`,
     `${productLine.toUpperCase()}!!`,
     `${offerLine.toUpperCase()}`,
-    loc ? `MILTE HAIN: ${loc.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()} — YAHIN HAI`,
-    `${offerLine.toUpperCase()} — VISIT ${brand.toUpperCase()}!`,
+    fullAddr ? `${fullAddr.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()} — YAHIN HAI`,
+    `${offerLine.toUpperCase()}! ${fullAddr.toUpperCase()} — VISIT ${brand.toUpperCase()}`,
   ] : [
     `${festHook} @ ${brand.toUpperCase()}`,
     `${productLine.toUpperCase()}!!`,
     `${offerLine.toUpperCase()}`,
-    loc ? `${loc.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()}'S HERE`,
-    `${offerLine.toUpperCase()}! HURRY — VISIT ${brand.toUpperCase()}`,
+    fullAddr ? `${fullAddr.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()}'S HERE`,
+    `${offerLine.toUpperCase()}! FIND US: ${fullAddr.toUpperCase()} — VISIT ${brand.toUpperCase()}`,
   ]);
 
   const visuals = (hindi ? [
     `${festLabel || 'Special'} sale opening in slow-mo with confetti, brand name ${brand} and ${offerLine} on screen.`,
     `Fast cuts showing ${productLine} flying across frame with dynamic camera moves at ${brand}.`,
     `Explosive ${offerLine} reveal with sparks and countdown urgency, ${brand} logo bounces in.`,
-    loc ? `Zoom into a stylish storefront of ${brand} with big address text: ${loc}.` : `Zoom into the stylish storefront of ${brand}.`,
-    `Final mega call-to-action card: ${brand} — ${offerLine}, ${locLine}, with fire emojis.`,
+    fullAddr ? `Zoom into the storefront of ${brand} with big address text on screen: ${fullAddr}.` : `Zoom into the stylish storefront of ${brand}.`,
+    `Final mega call-to-action card: ${brand} — ${offerLine}, full address: ${locLine}, with fire emojis.`,
   ] : [
     `${festLabel || 'Special'} sale opening in slow-mo with confetti, brand name ${brand} and ${offerLine} on screen.`,
     `Fast cuts showing ${productLine} flying across frame with dynamic camera moves at ${brand}.`,
     `Explosive ${offerLine} reveal with sparks and countdown urgency, ${brand} logo bounces in.`,
-    loc ? `Zoom into a stylish storefront of ${brand} with big address text: ${loc}.` : `Zoom into the stylish storefront of ${brand}.`,
-    `Final mega call-to-action card: ${brand} — ${offerLine}, ${locLine}, with fire emojis.`,
+    fullAddr ? `Zoom into the storefront of ${brand} with big address text on screen: ${fullAddr}.` : `Zoom into the stylish storefront of ${brand}.`,
+    `Final mega call-to-action card: ${brand} — ${offerLine}, full address: ${locLine}, with fire emojis.`,
   ]);
 
   const hook = `${festHook} @ ${brand}!`;
@@ -205,13 +214,13 @@ function generateMockConcept(business) {
     '',
     `🏬 ${brand} — ${productLine}`,
     rawOffer ? `🎁 Offer: ${rawOffer}` : '',
-    loc ? `📍 ${loc}` : '',
+    `📍 ${locLine}`,
     '',
     `⏰ Limited time offer — hurry before it's gone!`,
     `🔥 Double tap if this deal is TOO GOOD to miss!`,
     hindi ? 'सबसे best deals के लिए follow करें + save करें!' : 'Follow + save for the best deals in town!',
     '',
-    ...buildHashtags({ brand, business_type, festival: festLabel, location: loc, style }),
+    ...buildHashtags({ brand, business_type, festival: festLabel, location: locLine, style }),
   ].filter((l) => l !== '').join('\n');
 
   return {

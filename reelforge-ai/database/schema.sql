@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS reels (
   description TEXT NULL,
   festival VARCHAR(100) NULL,
   location VARCHAR(190) NULL,
+  shop_number VARCHAR(60) NULL,
+  address VARCHAR(255) NULL,
   offer VARCHAR(190) NULL,
   target_audience VARCHAR(190) NULL,
   language VARCHAR(60) DEFAULT 'English',
