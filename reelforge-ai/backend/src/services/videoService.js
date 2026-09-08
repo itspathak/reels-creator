@@ -545,9 +545,11 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   nextOverlay('spark1.png', 872, 432, winExpr([0, 2]));
   nextOverlay('spark2.png', 430, 70, winExpr([1, 3]));
   // hot badge near offer
-  nextOverlay('hot.png', 660, 226, winExpr([0, 1]));
-  // arrow toward offer
-  nextOverlay('arrow.png', 150, 168, winExpr([2, 3]));
+  if (offer) {
+    nextOverlay('hot.png', 660, 226, winExpr([0, 1]));
+    // arrow toward offer
+    nextOverlay('arrow.png', 150, 168, winExpr([2, 3]));
+  }
   // visit CTA pill (last scene)
   nextOverlay('visit.png', 230, 1560, winExpr([durations.length - 1]));
 

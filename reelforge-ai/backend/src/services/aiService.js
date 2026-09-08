@@ -78,14 +78,20 @@ Rules:
 - The call-to-action must drive the main goal: "Get More Customers" = invite people to visit, "Promote Offer" = push the offer/price, "Launch Product" = announce the new product, "Brand Awareness" = repeat the brand name, "Increase Engagement" = ask to like/comment/share.
 - Every scene text overlay must include the shop number and full address when available (e.g. "Shop No. 12, MG Road, Jaipur"), and the voiceover must speak the full address out loud in the location scene.
 
+OFFER RULES (strict — never invent offers):
+- If "Special Offer" is provided: repeat that EXACT offer wording (no additions, no invented percentages/discounts) in the hook and in at least 2 more scene texts + their voiceovers.
+- If "Special Offer" is None and no festival is provided: ABSOLUTELY DO NOT mention any offer, sale, discount, "limited time", "special price" or price — anywhere in hook, texts, voiceover, caption or cta. Instead the hook and scene 1 should promote the products/services and experience.
+- If only a festival is provided (no offer): you MAY greet with the festival (e.g. "Happy Diwali at {brand}"), but DO NOT advertise any discount or sale.
+- Scene 3: if an offer exists, show the offer; otherwise show the products/services highlight — never an invented offer.
+
 CLARITY RULES (most important — the viewer must instantly understand the reel):
 - Every scene must clearly identify the business: always include the business name and what the business sells/offers (business type + description, e.g. "jeans & shirts", "cafe", "sweet shop").
-- Scene 1 (hook) must contain BOTH the brand name AND the offer (if provided) or festival occasion (if provided), e.g. "Diwali Sale at Star Fashion".
-- Scene 3 (offer scene) must repeat the exact offer or a festival occasion if the offer is missing.
+- Scene 1 (hook) must contain BOTH the brand name AND the offer (only if provided) or the festival occasion (only if provided) or the product line.
 - Scene 4 (location scene) must show the exact location/address.
 - Scene 5 (CTA) must repeat brand name + location.
-- Repeat the offer in at least 2 different scenes, and the brand name in every scene's text overlay.
-- Never leave the text overlay generic (no "Big Sale" or "Visit us" without naming the brand, offer, or location).
+- Repeat the brand name in every scene's text overlay.
+- Never leave the text overlay generic (no "Big Sale" or "Visit us" without naming the brand, offer, location or product).
+- The one exception to the no-offer rule: if this reel's business genuinely runs a plain "special offer" and the user did NOT provide one, still do not invent it.
 - Return ONLY the JSON object, no explanation.`;
 
   const completion = await openai.chat.completions.create({
@@ -148,15 +154,12 @@ function generateMockConcept(business) {
   // --- what the business SELLS, derived from type + description ---
   const productLine = productLineFor(catLower);
 
-  // --- concrete offer: user offer, else festive fallback, else generic ---
-  let offerLine;
-  if (rawOffer) {
-    offerLine = rawOffer;
-  } else if (festLabel) {
-    offerLine = `${festLabel} Sale — khaas offers abhi`;
-  } else {
-    offerLine = `Special Offers`;
-  }
+  // --- concrete offer: ONLY the user's offer is used — never invented ---
+  const hasOffer = !!rawOffer;
+  const hasFest = !!festLabel;
+  const offerLine = hasOffer ? rawOffer : '';
+  // scene-3 "promise" keeps the reel alive without fabricating any offer
+  const promise = hasOffer ? offerLine : (hasFest ? `${festLabel} special` : productLine);
 
   // --- full address line: shop number + street/area + location (city) ---
   const addrParts = [];
@@ -166,8 +169,8 @@ function generateMockConcept(business) {
   const fullAddr = addrParts.join(', ');
   const locLine = fullAddr || 'hamari dukaan par';
 
-  // --- festival greeting for the hook ---
-  const festHook = festLabel ? `${festLabel.toUpperCase()} SALE` : 'SPECIAL SALE';
+  // --- hook headline: offer / festival / product depending on what EXISTS ---
+  const festHook = hasOffer ? 'SPECIAL OFFER' : (hasFest ? `${festLabel.toUpperCase()}` : `${productLine.toUpperCase()}`);
 
   // --- reel style shapes hook energy + tone ---
   const STYLE_TONE = {
@@ -191,66 +194,61 @@ function generateMockConcept(business) {
   };
   const goalCTA = GOAL_CTA[goal] || GOAL_CTA['Get More Customers'];
 
-  // --- voiceover lines (specific, energetic, data-driven) ---
+  // --- voiceover lines (offer spoken ONLY when the user gave one) ---
   const vo = (hindi ? [
-    `${festLabel ? `Haan, ${festLabel} ka mauka aa gaya! ` : 'Rukna mat, deal aa gayi! '}${offerLine} — sirf ${brand} par, aur khaas ${productLine} ke saath.`,
-    `${brand} mein ${productLine} ka dhamaka — ${tone.energy}! ${tone.vibe}.`,
-    `${offerLine}. ${festLabel ? 'Tyohaar ka maza ab double! ' : 'Budget mein hi full maza! '}Time limited hai — jitni der me dhyan se dekho, deal puri ho jayegi!`,
-    fullAddr ? `Store chale jao — ${fullAddr}. ${brand} yahin hai, aur gaadi se aana ho to GPS pe naam search karo — pahunchna easy hai!` : `Store chale jao — ${brand} yahin hai, aur offer paas mein hi!`,
-    `Ek last reminder! ${offerLine}. ${goalCTA}. Address: ${fullAddr} — ${brand}!`,
+    `${hasFest ? `Haan, ${festLabel} ka mauka aa gaya! ` : hasOffer ? 'Rukna mat, deal aa gayi! ' : 'Kaun hai yahan ka number one? '}${hasOffer ? `${offerLine} — sirf ${brand} par` : `${brand} — ${productLine} ka best collection`}.`,
+    `${brand} mein ${productLine} — ${tone.energy}! ${tone.vibe}.`,
+    hasOffer ? `${offerLine}. ${hasFest ? 'Tyohaar ka maza ab double! ' : 'Budget mein hi full maza! '}Time limited hai — jaldi chalo!` : `${productLine} mein best quality — ${tone.vibe}. ${fullAddr ? 'Aankh bhar ke dekhne zaroor aaiye.' : 'Dekhne zaroor aaiye.'}`,
+    fullAddr ? `Store chale jao — ${fullAddr}. ${brand} yahin hai, aur GPS pe naam search karo — pahunchna easy hai!` : `Store chale jao — ${brand} yahin hai!`,
+    `Ek last reminder! ${hasOffer ? offerLine + '. ' : ''}${goalCTA}. ${fullAddr ? `Address: ${fullAddr} — ${brand}!` : `${brand}!`}`,
   ] : [
-    `${festLabel ? `Hey, it's ${festLabel} time! ` : 'Wait, the deal is here! '}${offerLine} on ${productLine} — only at ${brand}.`,
-    `${brand} is serving up the best ${productLine} — ${tone.energy.toLowerCase()} and totally on-point.`,
-    `${offerLine}! ${festLabel ? 'Make this festive season special. ' : 'Big on value, easy on budget. '}Limited time — hurry before it is gone!`,
-    fullAddr ? `Head over to ${fullAddr}. ${brand} is right here — punch the name in your GPS and you are minutes away!` : `Head over to the store — ${brand} is right here, deals are waiting!`,
-    `One last reminder! ${offerLine}. ${goalCTA}. Find us at ${fullAddr}. Visit ${brand} today!`,
+    `${hasFest ? `Hey, it's ${festLabel} time! ` : hasOffer ? 'Wait, the deal is here! ' : 'Stop scrolling — this place is special! '}${hasOffer ? `${offerLine} on ${productLine} — only at ${brand}.` : `The best ${productLine} — only at ${brand}.`}`,
+    `${brand} serves up the finest ${productLine} — ${tone.energy.toLowerCase()} and totally on-point.`,
+    hasOffer ? `${offerLine}! ${hasFest ? 'Make this festive season special. ' : 'Big on value, easy on budget. '}Limited time — hurry before it is gone!` : `Quality ${productLine}, done right — ${tone.vibe}. ${fullAddr ? 'Come see it for yourself.' : 'Come see it for yourself.'}`,
+    fullAddr ? `Head over to ${fullAddr}. ${brand} is right here — punch the name in your GPS and you are minutes away!` : `Head over to the store — ${brand} is right here!`,
+    `One last reminder! ${hasOffer ? offerLine + '. ' : ''}${goalCTA}. ${fullAddr ? `Find us at ${fullAddr}. Visit ${brand} today!` : `Visit ${brand} today!`}`,
   ]);
 
   const texts = (hindi ? [
     `${festHook} @ ${brand.toUpperCase()}`,
     `${productLine.toUpperCase()}!!`,
-    `${offerLine.toUpperCase()}`,
+    hasOffer ? `${offerLine.toUpperCase()}` : (hasFest ? `${festLabel.toUpperCase()} SPECIAL` : `${productLine.toUpperCase()} @ ${brand.toUpperCase()}`),
     fullAddr ? `${fullAddr.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()} — YAHIN HAI`,
-    `${offerLine.toUpperCase()}! ${fullAddr.toUpperCase()} — ${goalCTA.toUpperCase()} @ ${brand.toUpperCase()}`,
+    hasOffer ? `${offerLine.toUpperCase()}! ${fullAddr ? fullAddr.toUpperCase() + ' — ' : ''}${goalCTA.toUpperCase()} @ ${brand.toUpperCase()}` : `${goalCTA.toUpperCase()} — ${fullAddr ? fullAddr.toUpperCase() + ' — ' : ''}${brand.toUpperCase()}`,
   ] : [
     `${festHook} @ ${brand.toUpperCase()}`,
     `${productLine.toUpperCase()}!!`,
-    `${offerLine.toUpperCase()}`,
+    hasOffer ? `${offerLine.toUpperCase()}` : (hasFest ? `${festLabel.toUpperCase()} SPECIAL` : `${productLine.toUpperCase()} @ ${brand.toUpperCase()}`),
     fullAddr ? `${fullAddr.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()}'S HERE`,
-    `${offerLine.toUpperCase()}! ${goalCTA.toUpperCase()} — FIND US: ${fullAddr.toUpperCase()}`,
+    hasOffer ? `${offerLine.toUpperCase()}! ${goalCTA.toUpperCase()} — FIND US: ${fullAddr.toUpperCase()}` : `${goalCTA.toUpperCase()} — FIND US: ${fullAddr.toUpperCase()} @ ${brand.toUpperCase()}`,
   ]);
 
-  const visuals = (hindi ? [
-    `${festLabel || 'Special'} sale opening in slow-mo with confetti, brand name ${brand} and ${offerLine} on screen.`,
+  const visuals = [
+    hasOffer ? `${offerLine} opening in slow-mo with confetti, brand name ${brand} and the deal on screen.` : (hasFest ? `${festLabel} celebration vibe, ${brand} at the centre with ${productLine} on display.` : `Premium showcase opening: ${productLine} flying across a glowing studio, ${brand} in the spotlight.`),
     `Fast cuts showing ${productLine} flying across frame with dynamic camera moves at ${brand}.`,
-    `Explosive ${offerLine} reveal with sparks and countdown urgency, ${brand} logo bounces in.`,
+    hasOffer ? `Explosive ${offerLine} reveal with sparks and countdown urgency, ${brand} logo bounces in.` : `${productLine} close-up reveal with clean studio lights, ${brand} styled card slides in.`,
     fullAddr ? `Zoom into the storefront of ${brand} with big address text on screen: ${fullAddr}.` : `Zoom into the stylish storefront of ${brand}.`,
-    `Final mega call-to-action card: ${brand} — ${offerLine}, full address: ${locLine}, with fire emojis.`,
-  ] : [
-    `${festLabel || 'Special'} sale opening in slow-mo with confetti, brand name ${brand} and ${offerLine} on screen.`,
-    `Fast cuts showing ${productLine} flying across frame with dynamic camera moves at ${brand}.`,
-    `Explosive ${offerLine} reveal with sparks and countdown urgency, ${brand} logo bounces in.`,
-    fullAddr ? `Zoom into the storefront of ${brand} with big address text on screen: ${fullAddr}.` : `Zoom into the stylish storefront of ${brand}.`,
-    `Final mega call-to-action card: ${brand} — ${offerLine}, full address: ${locLine}, with fire emojis.`,
-  ]);
+    `Final call-to-action card: ${brand} — ${hasOffer ? offerLine + ', ' : ''}${productLine}, ${fullAddr ? 'address: ' + fullAddr : 'visit us today'}.`,
+  ];
 
   const hook = `${festHook} @ ${brand} — ${tone.hookTail}!`;
   const caption = [
-    `${festLabel ? `${festLabel.toUpperCase()} SALE 🔥` : 'SPECIAL OFFER 🔥'} · ${style || 'Viral'} VIBE`,
+    hasOffer ? 'SPECIAL OFFER 🔥' : (hasFest ? `${festLabel.toUpperCase()} SPECIAL 🎉` : `${productLine.toUpperCase()} 🛍️`) + ` · ${style || 'Viral'} VIBE`,
     '',
     `🏬 ${brand} — ${productLine}`,
     rawOffer ? `🎁 Offer: ${rawOffer}` : '',
     `📍 ${locLine}`,
     '',
-    `⏰ Limited time offer — hurry before it's gone!`,
-    `💬 ${goalCTA}! ${hindi ? 'सबसे best deals के लिए follow करें + save करें!' : 'Follow + save for the best deals in town!'}`,
+    hasOffer ? `⏰ Limited time offer — hurry before it's gone!` : (hasFest ? `✨ ${festLabel} celebrations at ${brand}!` : `✨ Come visit ${brand} today!`),
+    hasOffer ? `💬 ${goalCTA}! ${hindi ? 'सबसे best deals के लिए follow करें + save करें!' : 'Follow + save for the best deals in town!'}` : `💬 ${goalCTA}! ${hindi ? 'Follow + save karna na bhoolen!' : 'Follow + save for more!'}`,
     '',
     ...buildHashtags({ brand, business_type, festival: festLabel, location: locLine, style }),
   ].filter((l) => l !== '').join('\n');
 
   return {
     hook,
-    concept: `A ${style || 'viral'} Diwali/festive reel for ${brand} (${business_type}) — selling ${productLine}, offering ${offerLine}, located at ${locLine}. Clear hook, offer, location and CTA.`,
+    concept: `A ${style || 'viral'} reel for ${brand} (${business_type}) — ${hasOffer ? `offering ${offerLine}` : `showcasing ${productLine}`}, ${hasFest ? `${festLabel} themed, ` : ''}located at ${locLine}. Clear ${hasOffer ? 'offer,' : 'business,'} location and CTA.`,
+
     scenes: [
       { scene: 1, duration: 3, visual: visuals[0], text: texts[0], voiceover: vo[0] },
       { scene: 2, duration: 3, visual: visuals[1], text: texts[1], voiceover: vo[1] },
@@ -260,7 +258,7 @@ function generateMockConcept(business) {
     ],
     voiceover: vo.join(' '),
     caption,
-    cta: `${offerLine}. ${locLine}. Visit ${brand} today!`,
+    cta: `${hasOffer ? offerLine + '. ' : ''}${locLine}. ${goalCTA}. Visit ${brand} today!`,
     hashtags: buildHashtags({ brand, business_type, festival: festLabel, location: loc, style }),
   };
 }

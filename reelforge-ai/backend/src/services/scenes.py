@@ -49,18 +49,20 @@ def bright(c, f=0.25):
 def _derive_category():
     text = (CAT + " " + DESC).lower()
     rules = [
-        (["jeans", "shirt", "saree", "kurta", "lehenga", "ethnic", "cloth", "fabric", "dress", "boutique", "tailor", "garment", "fashion", "suit", "trouser", "dupatta", "dress material", "western wear", "tshirt", "t-shirt", "kurti"], "fashion"),
-        (["jewellery", "jewel", "gold", "silver", "ring", "diamond", "earring", "necklace", "ornament", "pandit", "kundan", "jhumka"], "jewellery"),
-        (["spa", "massage", "parlour", "facial", "skin", "glow", "makeover", "mehendi", "salon", "nail art", "wax"], "beauty"),
-        (["pizza", "burger", "cake", "sweet", "mithai", "restaurant", "cafe", "bakery", "food", "snack", "biryani", "cater", "chocolate", "curry", "thali", "dosa", "chaat", "tandoor", "kebab", "samosa"], "food"),
-        (["gym", "fitness", "workout", "yoga", "zumba", "trainer", "protein", "aerobics", "pilates"], "gym"),
-        (["mobile", "phone", "electronics", "gadget", "computer", "laptop", "repair", "accessories", "camera", "tech", "tv", "led", "sound", "speaker"], "tech"),
-        (["real estate", "property", "flat", "builder", "builders", "home loans", "apartment", "villa", "plot", "land"], "estate"),
-        (["travel", "hill", "nature", "mountain", "resort", "tour", "forest", "lake", "beach", "trek", "valley", "hotel", "homestay", "honeymoon", "vacation"], "travel"),
+        (["jeans", "shirt", "saree", "kurta", "lehenga", "ethnic", "cloth", "fabric", "dress", "boutique", "tailor", "garment", "fashion", "suit", "trouser", "dupatta", "dress material", "western wear", "tshirt", "t-shirt", "kurti", "denim", "apparel", "menswear", "womenswear", "kids wear", "sherwani", "chikan", "bandhgala", "suiting", "trousers", "shirts", "stitch"], "fashion"),
+        (["jewellery", "jewel", "gold", "silver", "ring", "diamond", "earring", "necklace", "ornament", "kundan", "jhumka", "bangle", "chain", "zari", "studs", "diamonds"], "jewellery"),
+        (["spa", "massage", "parlour", "facial", "skin", "glow", "makeover", "mehendi", "mehndi", "salon", "nail art", "wax", "haircut", "threading", "bleach", "tan", "bridal", "beauty", "mani", "pedi", "makeup", "lashes", "barber"], "beauty"),
+        (["gym", "fitness", "workout", "yoga", "zumba", "trainer", "protein", "aerobics", "pilates", "crossfit", "boxing", "cardio", "strength", "muscle", "bodybuilding"], "gym"),
+        (["mobile", "phone", "electronics", "gadget", "computer", "laptop", "repair", "accessories", "camera", "tech", "tv", "led", "sound", "speaker", "cctv", "printer", "smartwatch", "refurbished"], "tech"),
+        (["real estate", "property", "flat", "builder", "builders", "home loans", "apartment", "villa", "plot", "land", "construction", "interior", "architecture"], "estate"),
+        (["travel", "hill station", "hill", "nature", "mountain", "resort", "tour", "forest", "lake", "beach", "trek", "trekking", "valley", "homestay", "honeymoon", "vacation", "sightseeing", "adventure", "guesthouse", "cottage", "paragliding"], "travel"),
+        (["pizza", "burger", "cake", "sweet", "mithai", "restaurant", "cafe", "bakery", "food", "snack", "biryani", "cater", "chocolate", "curry", "thali", "dosa", "chaat", "tandoor", "kebab", "samosa", "ice cream", "street food", "dinner", "lunch", "breakfast", "juice", "tiffin", "kitchen", "dhaba"], "food"),
     ]
     for kw, cat in rules:
         if any(k in text for k in kw):
             return cat
+    if "hotel" in CAT or "resort" in CAT:
+        return "travel"
     return CAT
 
 
