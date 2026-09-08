@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, API_URL_BASE } from '../services/api.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { Spinner } from '../components/Loaders.jsx';
-import MediaUploader from '../components/MediaUploader.jsx';
 
 const BUSINESS_TYPES = ['Restaurant', 'Cafe', 'Pizza / Fast Food', 'Bakery', 'Clothing / Fashion', 'Salon / Beauty', 'Gym / Fitness', 'Real Estate', 'Jewellery', 'Electronics', 'Travel / Hill Station', 'Hotel / Resort', 'Catering', 'Service Business', 'Other'];
 
@@ -43,9 +42,7 @@ const GOALS = [
   { name: 'Increase Engagement', icon: '❤️' },
 ];
 
-const STEP_LABELS = ['Business Details', 'Reel Preferences', 'Upload Media', 'Generate'];
-
-const API_BASE = API_URL_BASE.replace(/\/api$/, '');
+const STEP_LABELS = ['Business Details', 'Reel Preferences', 'Review & Generate'];
 
 export default function CreateReel() {
   const navigate = useNavigate();
@@ -57,7 +54,6 @@ export default function CreateReel() {
   const [editMode, setEditMode] = useState(false);
   const [loadingInit, setLoadingInit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [mediaBusy, setMediaBusy] = useState(false);
 
   const [form, setForm] = useState({
     business_name: '',
@@ -163,40 +159,6 @@ export default function CreateReel() {
   };
 
   const back = () => setStep((s) => Math.max(1, s - 1));
-
-  const uploadFile = async (file, fileType) => {
-    setMediaBusy(true);
-    try {
-      const res = await api.upload(`/reels/${reelId}/media`, file, 'file', fileType);
-      setMedia(res.data.media.map((m) => ({
-        id: m.id,
-        file_url: m.file_url,
-        file_type: m.file_type,
-        original_name: m.original_name,
-      })));
-    } catch (err) {
-      showToast(err.message, 'error');
-      throw err;
-    } finally {
-      setMediaBusy(false);
-    }
-  };
-
-  const removeFile = async (mediaId) => {
-    try {
-      const res = await api.delete(`/reels/${reelId}/media/${mediaId}`);
-      setMedia(
-        res.data.media.map((m) => ({
-          id: m.id,
-          file_url: m.file_url,
-          file_type: m.file_type,
-          original_name: m.original_name,
-        }))
-      );
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  };
 
   const toSummary = async () => {
     setSubmitting(true);
@@ -388,25 +350,6 @@ export default function CreateReel() {
 
         {step === 3 && (
           <>
-            <h2 className="wizard-title">Add your photos &amp; videos <span style={{ fontWeight: 400, fontSize: '0.75em', color: 'var(--text-muted)' }}>(optional)</span></h2>
-            <p className="wizard-subtitle">Skip this to let AI create beautiful illustrated visuals — or upload to use your own photos.</p>
-            <div className="card">
-              <MediaUploader
-                mediaList={media.map((m) => ({ ...m, file_url: m.file_url.startsWith('http') ? m.file_url : API_BASE + m.file_url }))}
-                onUpload={uploadFile}
-                onRemove={removeFile}
-                allowedTypes="all"
-                maxFiles={6}
-              />
-              <p className="hint" style={{ marginTop: 14, color: 'var(--text-muted)' }}>
-                {mediaBusy ? 'Uploading…' : `Uploaded ${media.filter((m) => m.file_type !== 'logo').length} media item(s)`}
-              </p>
-            </div>
-          </>
-        )}
-
-        {step === 4 && (
-          <>
             <h2 className="wizard-title">Ready to generate?</h2>
             <p className="wizard-subtitle">Review your details, then let AI do its magic.</p>
             <div className="card">
@@ -425,7 +368,6 @@ export default function CreateReel() {
                 <div className="summary-item"><div className="k">Voice</div><div className="v">{VOICES.find((v) => v.name === form.voice)?.label || form.voice}</div></div>
                 <div className="summary-item"><div className="k">Style</div><div className="v">{form.style}</div></div>
                 <div className="summary-item"><div className="k">Goal</div><div className="v">{form.goal}</div></div>
-                <div className="summary-item"><div className="k">Media Uploaded</div><div className="v">{media.length || 0} item(s)</div></div>
               </div>
               <div className="mt-3">
                 <button className="btn btn-primary btn-lg btn-block" onClick={generate} disabled={submitting}>
@@ -437,17 +379,17 @@ export default function CreateReel() {
         )}
       </div>
 
-      {step < 4 && (
+      {step < 3 && (
         <div className="wizard-nav">
           <button className="btn btn-secondary" onClick={back} disabled={step === 1 || submitting}>
             ← Back
           </button>
-          {step < 3 && (
+          {step === 1 && (
             <button className="btn btn-primary" onClick={next} disabled={submitting}>
               {submitting ? <Spinner size={18} /> : 'Continue →'}
             </button>
           )}
-          {step === 3 && (
+          {step === 2 && (
             <button className="btn btn-primary" onClick={toSummary} disabled={submitting}>
               {submitting ? <Spinner size={18} /> : 'Review & Generate →'}
             </button>
