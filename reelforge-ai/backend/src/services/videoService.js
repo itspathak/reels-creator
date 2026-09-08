@@ -241,6 +241,120 @@ function detectFestival(business) {
   return 'none';
 }
 
+// ---------------------------------------------------------------------------
+// Real stock visuals: category → real photos fetched from Wikimedia Commons,
+// used as looped ken-burns backgrounds (video-like) instead of drawn icons.
+// ---------------------------------------------------------------------------
+const CATEGORY_QUERIES = {
+  food: ['indian restaurant food dishes', 'pizza cafe bakery', 'sweets mithai shop'],
+  fashion: ['clothing store dresses', 'saree fabric shop', 'fashion boutique'],
+  beauty: ['spa massage therapy', 'beauty salon hair', 'facial skin care'],
+  gym: ['gym workout training', 'fitness exercise dumbbell'],
+  tech: ['smartphone mobile phone', 'electronics store gadgets'],
+  health: ['pharmacy medicines store', 'medical clinic doctor'],
+  auto: ['car showroom', 'automobile repair workshop'],
+  flowers: ['flower bouquet fresh', 'flower shop florist'],
+  jewellery: ['gold jewellery necklace', 'diamond earrings'],
+  travel: ['mountain hill station', 'resort lake nature'],
+  estate: ['modern house architecture', 'apartment building'],
+  photo: ['photographer camera studio', 'wedding photography'],
+  general: ['shop storefront small business', 'retail shop'],
+};
+
+function classifyBusiness(business) {
+  const hay = [
+    (business && business.business_type) || '',
+    (business && business.business_name) || '',
+    (business && business.description) || '',
+  ].join(' ').toLowerCase();
+  const sets = {
+    fashion: ['jeans', 'shirt', 'saree', 'kurta', 'lehenga', 'ethnic', 'cloth', 'fabric', 'dress', 'boutique', 'tailor', 'tailoring', 'garment', 'fashion', 'suit', 'trouser', 'dupatta', 'dress material', 'western wear', 'tshirt', 't-shirt', 'kurti', 'denim', 'apparel', 'menswear', 'sherwani', 'blazer', 'jacket', 'uniform', 'stitch'],
+    jewellery: ['jewellery', 'jewel', 'gold', 'silver', 'ring', 'diamond', 'earring', 'necklace', 'ornament', 'kundan', 'jhumka', 'bangle', 'chain', 'zari', 'studs'],
+    beauty: ['spa', 'massage', 'parlour', 'facial', 'skin', 'glow', 'makeover', 'mehendi', 'mehndi', 'salon', 'nail art', 'wax', 'haircut', 'threading', 'bleach', 'tan', 'bridal', 'beauty', 'mani', 'pedi', 'makeup', 'lashes', 'barber', 'hair styl', 'henna'],
+    gym: ['gym', 'fitness', 'workout', 'yoga', 'zumba', 'trainer', 'protein', 'aerobics', 'pilates', 'crossfit', 'boxing', 'cardio', 'strength', 'muscle', 'bodybuilding'],
+    auto: ['car', 'bike', 'motorcycle', 'automobile', 'auto', 'servicing', 'tyre', 'tyres', 'showroom', 'spare', 'garage', 'workshop', 'scooter', 'ev', 'electric vehicle', 'four wheeler', 'two wheeler'],
+    tech: ['mobile', 'phone', 'electronics', 'gadget', 'computer', 'laptop', 'repair', 'accessories', 'camera', 'tech', 'tv', 'led', 'sound', 'speaker', 'cctv', 'printer', 'smartwatch', 'refurbished', 'gaming', 'appliance', 'ac repair', 'air conditioner', 'mobile cover', 'earphones'],
+    estate: ['real estate', 'property', 'flat', 'builder', 'builders', 'home loans', 'apartment', 'villa', 'plot', 'land', 'construction', 'interior', 'architecture', 'furniture', 'modular kitchen', 'plywood', 'paint', 'hardware', 'architect', 'broker', 'property dealer', 'coliving', 'pg'],
+    travel: ['travel', 'hill station', 'hill', 'nature', 'mountain', 'resort', 'tour', 'forest', 'lake', 'beach', 'trek', 'trekking', 'valley', 'homestay', 'honeymoon', 'vacation', 'sightseeing', 'adventure', 'guesthouse', 'cottage', 'paragliding', 'travel agency', 'taxi', 'car rental', 'tour operator'],
+    food: ['pizza', 'burger', 'cake', 'sweet', 'mithai', 'restaurant', 'cafe', 'bakery', 'food', 'snack', 'biryani', 'cater', 'catering', 'chocolate', 'curry', 'thali', 'dosa', 'chaat', 'tandoor', 'kebab', 'samosa', 'ice cream', 'street food', 'dinner', 'lunch', 'breakfast', 'juice', 'tiffin', 'kitchen', 'dhaba', 'namkeen', 'momos', 'noodles', 'chai', 'coffee', 'dairy', 'cloud kitchen'],
+    health: ['pharmacy', 'medical', 'clinic', 'doctor', 'dentist', 'dental', 'hospital', 'ayurved', 'physio', 'health', 'medicine', 'diagnostic', 'lab test'],
+    flowers: ['flower', 'florist', 'bouquet', 'plant', 'nursery', 'gardening', 'greenhouse', 'indoor plants'],
+    photo: ['photograph', 'photography', 'videography', 'camera', 'photo booth', 'video shoot', 'wedding shoot', 'studio', 'snap', 'pre wedding', 'editing'],
+  };
+  const order = ['fashion', 'jewellery', 'beauty', 'gym', 'auto', 'tech', 'estate', 'travel', 'food', 'health', 'flowers', 'photo'];
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const key of order) {
+    if (sets[key].some((kw) => (kw.length < 5 ? new RegExp(`\\b${esc(kw)}\\b`, 'i').test(hay) : hay.includes(kw)))) return key;
+  }
+  if (/hotel|resort/.test(hay)) return 'travel';
+  return 'general';
+}
+
+async function fetchStockImages(renderDir, category, count) {
+  if (process.env.STOCK_VISUALS === '0') return [];
+  const catKey = String(category).replace(/[^\w]/g, '') || 'general';
+  const cacheDir = path.join(UPLOADS_DIR, '.stock', catKey);
+  const files = [];
+
+  // 1) reuse cached images (no network)
+  if (fs.existsSync(cacheDir)) {
+    const cached = fs
+      .readdirSync(cacheDir)
+      .filter((f) => /^img\d+\.(jpg|png)$/.test(f))
+      .sort()
+      .slice(0, count);
+    for (const c of cached) {
+      fs.copyFileSync(path.join(cacheDir, c), path.join(renderDir, `img${files.length}.jpg`));
+      files.push(`img${files.length}.jpg`);
+    }
+    if (files.length >= count) {
+      console.log(`[stock] ${category} cached ${files.length} images`);
+      return files;
+    }
+  }
+
+  // 2) fetch missing from Wikimedia Commons
+  const queries = CATEGORY_QUERIES[catKey] || CATEGORY_QUERIES.general;
+  try {
+    for (const q of queries) {
+      if (files.length >= count) break;
+      try {
+        const params = new URLSearchParams({
+          action: 'query', generator: 'search', gsrsearch: q,
+          gsrnamespace: '6', prop: 'imageinfo',
+          iiprop: 'url|width|height', iiurlwidth: '900', format: 'json', origin: '*',
+        });
+        const res = await fetch('https://commons.wikimedia.org/w/api.php?' + params.toString(), { signal: AbortSignal.timeout(15000) });
+        const data = JSON.parse(await res.text());
+        const pages = (data.query && data.query.pages) || {};
+        const entries = Object.values(pages)
+          .map((p) => ({ title: p.title, info: p.imageinfo && p.imageinfo[0] }))
+          .filter((e) => e.info && e.info.url && /\.(jpe?g|png|webp)$/i.test(e.title))
+          .map((e) => ({ src: `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(e.title.replace(/^File:/i, ''))}?width=900` }));
+        for (const e of entries) {
+          if (files.length >= count) break;
+          try {
+            const r = await fetch(e.src, { signal: AbortSignal.timeout(12000), redirect: 'follow' });
+            if (!r.ok) continue;
+            const buf = Buffer.from(await r.arrayBuffer());
+            if (buf.length < 15000) continue;
+            fs.mkdirSync(cacheDir, { recursive: true });
+            fs.writeFileSync(path.join(renderDir, `img${files.length}.jpg`), buf);
+            fs.writeFileSync(path.join(cacheDir, `img${files.length}.jpg`), buf);
+            files.push(`img${files.length}.jpg`);
+          } catch { /* skip individual image */ }
+        }
+      } catch (err) {
+        console.warn(`[stock] ${category} query "${q}" failed: ${err.message}`);
+      }
+    }
+  } catch (err) {
+    console.warn('[stock]', err.message);
+  }
+  if (files.length) console.log(`[stock] ${category} fetched ${files.length} images`);
+  return files;
+}
+
 function saveGeneratedScenes(renderDir, category, festivalKey, palette, accent, n, useIndic, description, businessName) {
   const py = process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)
     ? process.env.PYTHON_PATH
@@ -469,12 +583,18 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   // ---- Pass A: render each scene ----
   const imgPool = imageNames.length ? imageNames : null;
   let genBgs = false;
+  let stockBgs = [];
   if (!imgPool) {
-    genBgs = await saveGeneratedScenes(renderDir, (template.business_type || 'general'), festivalKey, mood.palette, accent, scenesList.length, useIndic, template.description, template.business_name);
+    const category = classifyBusiness(template);
+    stockBgs = await fetchStockImages(renderDir, category, scenesList.length);
+    if (!stockBgs.length) {
+      genBgs = await saveGeneratedScenes(renderDir, (template.business_type || 'general'), festivalKey, mood.palette, accent, scenesList.length, useIndic, template.description, template.business_name);
+    }
   }
+  const bgAny = Boolean(imgPool || stockBgs.length);
   const bigSize = useIndic ? 88 : 100;
   for (let i = 0; i < scenesList.length; i++) {
-    let bgImage = imgPool ? imgPool[i % imgPool.length] : null;
+    let bgImage = imgPool ? imgPool[i % imgPool.length] : stockBgs.length ? stockBgs[i % stockBgs.length] : null;
     const zoomIn = i % 2 === 0;
     if (!bgImage) {
       if (genBgs) {
@@ -495,7 +615,7 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
       ? `z='min(1.0+0.0022*on,1.34)'`
       : `z='max(1.34-0.0022*on,1.03)'`;
     const panExpr = i % 3 === 0 ? `x='iw/2-(iw/zoom/2)+45*sin(on/30)'` : `x='iw/2-(iw/zoom/2)'`;
-    const mirror = imgPool && i % 2 === 1 ? ',hflip' : '';
+    const mirror = bgAny && i % 2 === 1 ? ',hflip' : '';
 
     const filter = [
       `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920${mirror},zoompan=${zoomExpr}:${panExpr}:y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920:fps=25[zi]`,

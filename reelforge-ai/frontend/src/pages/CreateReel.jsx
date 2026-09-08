@@ -84,6 +84,7 @@ export default function CreateReel() {
         const r = res.data.reel;
         setReelId(r.id);
         setEditMode(true);
+        setStep(2);
         setForm({
           business_name: r.business_name || '',
           business_type: r.business_type || '',
