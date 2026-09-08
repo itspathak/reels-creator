@@ -9,11 +9,11 @@ const BUSINESS_TYPES = ['Restaurant', 'Cafe', 'Pizza / Fast Food', 'Bakery', 'Cl
 
 const FESTIVALS = [
   { name: '', label: 'No specific theme', icon: '🎯' },
-  { name: 'Diwali', icon: '🪔' },
-  { name: 'Navratri', icon: '💃' },
-  { name: 'Holi', icon: '🪅' },
-  { name: 'Christmas', icon: '🎄' },
-  { name: 'New Year', icon: '🎆' },
+  { name: 'Diwali', label: 'Diwali', icon: '🪔' },
+  { name: 'Navratri', label: 'Navratri', icon: '💃' },
+  { name: 'Holi', label: 'Holi', icon: '🪅' },
+  { name: 'Christmas', label: 'Christmas', icon: '🎄' },
+  { name: 'New Year', label: 'New Year', icon: '🎆' },
 ];
 
 const LANGUAGES = ['English', 'Hindi', 'Gujarati', 'Hinglish'];
