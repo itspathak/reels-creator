@@ -64,7 +64,7 @@ function run(cmd, args, cwd) {
     if (process.platform === 'win32') {
       try {
         const { exec } = require('child_process');
-        exec(`powershell -NoProfile -Command "(Get-Process -Id ${child.pid}).PriorityClass='BelowNormal'`, { windowsHide: true }, () => {});
+        exec(`powershell -NoProfile -WindowStyle Hidden -Command "(Get-Process -Id ${child.pid}).PriorityClass = 'BelowNormal'"`, { windowsHide: true }, () => {});
       } catch {}
     }
     let stderr = '';
@@ -516,6 +516,7 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   const offer = (template?.offer || '').toString().trim();
   const renderDir = path.join(UPLOADS_DIR, 'render', String(reelId));
   fs.mkdirSync(renderDir, { recursive: true });
+  console.log(`[render] started reelId=${reelId} dir=${renderDir} scenes=${scenesList.length} voice=${voiceUrl || 'none'}`);
 
   // ---- prep: font, per-scene text files, backgrounds, images ----
   const language = template?.language || 'English';
@@ -644,6 +645,7 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   const bigSize = useIndic ? 88 : 100;
   const sceneEnc = encArgsV('nv12', 20);
   for (let i = 0; i < scenesList.length; i++) {
+    console.log(`[render] scene ${i + 1}/${scenesList.length}`);
     let bgImage = imgPool ? imgPool[i % imgPool.length] : stockBgs.length ? stockBgs[i % stockBgs.length] : null;
     const zoomIn = i % 2 === 0;
     if (!bgImage) {
@@ -766,7 +768,9 @@ saveScenes();
   const fadeOut = Math.max(0, total - 0.8).toFixed(2);
   chain += `;[${base}]eq=contrast=1.09:brightness=0.012:saturation=1.25:gamma=0.98,unsharp=5:5:0.5:5:5:0,vignette=angle=PI/6,noise=alls=2:allf=t+u,fade=t=in:st=0:d=0.4,fade=t=out:st=${fadeOut}:d=0.8,format=${passBEnc.fmt}[vout]`;
   args.push('-filter_complex', chain, '-map', '[vout]', '-t', String(total), '-an', ...passBEnc.codec, 'noaudio.mp4');
+  console.log(`[render] pass A scenes done, pass B concat (${total}s) starting`);
   await run(ffmpeg, args, renderDir);
+  console.log('[render] pass B done');
 
   // ---- audio: narration (if any) + energetic beat ----
   synthMusicWav(path.join(renderDir, 'music.wav'), total, mood);

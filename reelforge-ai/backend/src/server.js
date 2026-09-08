@@ -1,5 +1,10 @@
 require('dotenv').config();
 
+process.on('exit', (code) => console.log(`[Server] process exiting, code=${code}`));
+process.on('uncaughtException', (e) => console.error('[Server] uncaughtException', e && e.message));
+process.on('unhandledRejection', (e) => console.error('[Server] unhandledRejection', e && e.message));
+process.on('SIGTERM', () => { console.log('[Server] SIGTERM received'); process.exit(0); });
+
 const app = require('./app');
 
 const PORT = process.env.PORT || 3000;
