@@ -32,6 +32,24 @@ except Exception:
 ACCENT = sys.argv[5] if len(sys.argv) > 5 else "#FFD54F"
 N = int(sys.argv[6]) if len(sys.argv) > 6 else 5
 INDIC = len(sys.argv) > 7 and sys.argv[7] == "1"
+DESC = sys.argv[8] if len(sys.argv) > 8 else ""
+
+# ---- AI-style analysis: derive the visual category from business type + description ----
+def _derive_category():
+    text = (CAT + " " + DESC).lower()
+    rules = [
+        (["jeans", "shirt", "saree", "kurta", "lehenga", "ethnic", "cloth", "fabric", "dress", "boutique", "tailor", "garment", "fashion", "suit", "trouser", "dupatta", "dress material"], "fashion"),
+        (["spa", "massage", "parlour", "facial", "skin", "glow", "makeover", "mehendi", "barbar", "salon", "nail art"], "beauty"),
+        (["pizza", "burger", "cake", "sweet", "mithai", "restaurant", "cafe", "bakery", "food", "snack", "biryani", "cater", "chocolate", "curry", "thali", "dosa", "chaat"], "food"),
+        (["gym", "fitness", "workout", "yoga", "zumba", "trainer", "protein", "aerobics", "pilates"], "gym"),
+        (["mobile", "phone", "electronics", "gadget", "computer", "laptop", "repair", "accessories", "camera", "tech", "tv", "led"], "tech"),
+        (["travel", "hill", "nature", "mountain", "resort", "tour", "forest", "lake", "beach", "trek", "valley", "hotel", "homestay"], "travel"),
+    ]
+    for kw, cat in rules:
+        if any(k in text for k in kw):
+            return cat
+    return CAT
+CAT = _derive_category()
 
 W, H = 1080, 1920
 

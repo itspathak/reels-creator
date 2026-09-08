@@ -155,6 +155,17 @@ function detectMood(business) {
   return BUSINESS_MOODS.general;
 }
 
+// Reel style → color/motion/music personality (category mood refined by style)
+const STYLE_MOODS = {
+  Luxury: { tempo: 104, accent: '#FFE082', palette: ['#1A1A2E', '#6C5CE7', '#4A3F6B'], sound: 'soft' },
+  Premium: { tempo: 110, accent: '#FFD54F', palette: ['#0F3443', '#34E89E', '#1C5D52'], sound: 'soft' },
+  Funny: { tempo: 132, accent: '#FFE156', palette: ['#FF5F6D', '#FFC371', '#FCE38A'], sound: 'fun' },
+  Minimal: { tempo: 112, accent: '#FFFFFF', palette: ['#ECEFF1', '#90A4AE', '#B0BEC5'], sound: 'soft' },
+  Promotional: { tempo: 130, accent: '#FF3D71', palette: ['#FF512F', '#DD2476', '#7F00FF'], sound: 'energetic' },
+  Festive: { tempo: 124, accent: '#FFD54F', palette: ['#FF851B', '#7F00FF', '#00CEA7'], sound: 'energetic' },
+  Viral: { tempo: 130, accent: '#6C5CE7', palette: ['#6C5CE7', '#00CEA7', '#8B5CF6'], sound: 'pop' },
+};
+
 const FESTIVAL_THEMES = {
   diwali: {
     palette: ['#FF512F', '#FFD54F', '#DD2476'],
@@ -206,14 +217,14 @@ function detectFestival(business) {
   return 'none';
 }
 
-function saveGeneratedScenes(renderDir, category, festivalKey, palette, accent, n, useIndic) {
+function saveGeneratedScenes(renderDir, category, festivalKey, palette, accent, n, useIndic, description) {
   const py = process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)
     ? process.env.PYTHON_PATH
     : 'C:/Users/ADMIN/AppData/Local/Temp/opencode/py/dist/python.exe';
   const script = path.join(__dirname, 'scenes.py');
   if (!fs.existsSync(py) || !fs.existsSync(script)) return false;
   return new Promise((resolve) => {
-    const args = [script, renderDir, category, festivalKey, JSON.stringify(palette.slice(0, 3)), accent, String(n), useIndic ? '1' : '0'];
+    const args = [script, renderDir, category, festivalKey, JSON.stringify(palette.slice(0, 3)), accent, String(n), useIndic ? '1' : '0', description || ''];
     const c = spawn(py, args, { windowsHide: true });
     let log = '';
     c.stdout.on('data', (dd) => (log += dd.toString()));
@@ -323,6 +334,9 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   const language = template?.language || 'English';
   const useIndic = ['Hindi', 'Gujarati'].includes(language);
   let mood = detectMood(template);
+  // reel style drives the color/motion vibe (category mood first, style refines it)
+  const styleMood = STYLE_MOODS[String(template?.style || '').trim()];
+  if (styleMood) mood = { ...mood, ...styleMood };
   const festivalKey = detectFestival(template);
   if (festivalKey !== 'none') {
     const ft = FESTIVAL_THEMES[festivalKey];
@@ -432,7 +446,7 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
   const imgPool = imageNames.length ? imageNames : null;
   let genBgs = false;
   if (!imgPool) {
-    genBgs = await saveGeneratedScenes(renderDir, (template.business_type || 'general'), festivalKey, mood.palette, accent, scenesList.length, useIndic);
+    genBgs = await saveGeneratedScenes(renderDir, (template.business_type || 'general'), festivalKey, mood.palette, accent, scenesList.length, useIndic, template.description);
   }
   const bigSize = useIndic ? 88 : 100;
   for (let i = 0; i < scenesList.length; i++) {

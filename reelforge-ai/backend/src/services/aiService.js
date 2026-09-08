@@ -61,6 +61,8 @@ Business Details:
 - Description: ${description || 'Not provided'}
 - Festival/Occasion: ${festival || 'Not provided'}
 - Location: ${location || 'Not provided'}
+- Shop number: ${business.shop_number || 'Not provided'}
+- Full address: ${business.address || 'Not provided'}
 - Special Offer: ${offer || 'None'}
 - Target Audience: ${target_audience || 'General audience'}
 - Language: ${language}
@@ -73,6 +75,8 @@ Rules:
 - Each scene duration should be 2-4 seconds.
 - Hashtags: generate 10-15 relevant Instagram hashtags (no # prefix).
 - The tone must match the reel style ("Viral" = energetic, "Luxury" = elegant, "Funny" = playful, "Premium" = refined, "Minimal" = clean, "Promotional" = action-oriented, "Festive" = celebratory).
+- The call-to-action must drive the main goal: "Get More Customers" = invite people to visit, "Promote Offer" = push the offer/price, "Launch Product" = announce the new product, "Brand Awareness" = repeat the brand name, "Increase Engagement" = ask to like/comment/share.
+- Every scene text overlay must include the shop number and full address when available (e.g. "Shop No. 12, MG Road, Jaipur"), and the voiceover must speak the full address out loud in the location scene.
 
 CLARITY RULES (most important — the viewer must instantly understand the reel):
 - Every scene must clearly identify the business: always include the business name and what the business sells/offers (business type + description, e.g. "jeans & shirts", "cafe", "sweet shop").
@@ -165,19 +169,41 @@ function generateMockConcept(business) {
   // --- festival greeting for the hook ---
   const festHook = festLabel ? `${festLabel.toUpperCase()} SALE` : 'SPECIAL SALE';
 
+  // --- reel style shapes hook energy + tone ---
+  const STYLE_TONE = {
+    Luxury: { hookTail: 'IN STYLE', energy: 'Elegant aur first-class', vibe: 'Premium feeling, top quality' },
+    Premium: { hookTail: 'PREMIUM PICK', energy: 'Refined aur polished', vibe: 'Quality jo har cheez ko best banaye' },
+    Funny: { hookTail: 'NO JOKING!', energy: 'Full masti ke saath', vibe: 'Haso, aur deal le jao' },
+    Minimal: { hookTail: 'SIMPLE. CLEAR. BEST.', energy: 'Clean aur direct', vibe: 'Seedha dil se best deal' },
+    Promotional: { hookTail: 'GRAB IT NOW', energy: 'Zabardast offers ke saath', vibe: 'Action time — dekhte hi chalo' },
+    Festive: { hookTail: 'FULL FESTIVAL', energy: 'Tyohaar ka josh', vibe: 'Rang, raunak aur offers sab kuch' },
+    Viral: { hookTail: 'TOO GOOD!', energy: 'Full dhamaka', vibe: 'Trending, winding, catchy' },
+  };
+  const tone = STYLE_TONE[style] || STYLE_TONE.Viral;
+
+  // --- main goal shapes the final call-to-action ---
+  const GOAL_CTA = {
+    'Get More Customers': hindi ? 'Aaj hi aaiye aur khud dekh lijiye' : 'Visit today and see for yourself',
+    'Promote Offer': hindi ? 'Offer pakdo — aaj hi store pe aaiye' : 'Grab the offer — walk in today',
+    'Launch Product': hindi ? 'Naya collection live hai — pehle aaiye' : 'Brand new line is live — be first',
+    'Brand Awareness': hindi ? `${brand} ko yaad rakhiye — yahi hai dekhne wali jagah` : `Remember ${brand} — the place to be`,
+    'Increase Engagement': hindi ? 'Like, comment aur share karo — sab ko batao' : 'Like, comment and share this deal',
+  };
+  const goalCTA = GOAL_CTA[goal] || GOAL_CTA['Get More Customers'];
+
   // --- voiceover lines (specific, energetic, data-driven) ---
   const vo = (hindi ? [
     `${festLabel ? `Haan, ${festLabel} ka mauka aa gaya! ` : 'Rukna mat, deal aa gayi! '}${offerLine} — sirf ${brand} par, aur khaas ${productLine} ke saath.`,
-    `${brand} mein ${productLine} ka dhamaka! Quality, style aur shaandaar offers — sab kuch ek hi jagah.`,
+    `${brand} mein ${productLine} ka dhamaka — ${tone.energy}! ${tone.vibe}.`,
     `${offerLine}. ${festLabel ? 'Tyohaar ka maza ab double! ' : 'Budget mein hi full maza! '}Time limited hai — jitni der me dhyan se dekho, deal puri ho jayegi!`,
-    fullAddr ? `Store chale jao — ${fullAddr}. ${brand} yahin hai, aur offer paas mein hi!` : `Store chale jao — ${brand} yahin hai, aur offer paas mein hi!`,
-    `Ek last reminder! ${offerLine}, address hain ${fullAddr}. ${hindi ? 'Aaj hi aaiye' : 'Visit us today'} — ${brand}!`,
+    fullAddr ? `Store chale jao — ${fullAddr}. ${brand} yahin hai, aur gaadi se aana ho to GPS pe naam search karo — pahunchna easy hai!` : `Store chale jao — ${brand} yahin hai, aur offer paas mein hi!`,
+    `Ek last reminder! ${offerLine}. ${goalCTA}. Address: ${fullAddr} — ${brand}!`,
   ] : [
     `${festLabel ? `Hey, it's ${festLabel} time! ` : 'Wait, the deal is here! '}${offerLine} on ${productLine} — only at ${brand}.`,
-    `${brand} is serving up the best ${productLine} with style, quality and crazy-good offers.`,
+    `${brand} is serving up the best ${productLine} — ${tone.energy.toLowerCase()} and totally on-point.`,
     `${offerLine}! ${festLabel ? 'Make this festive season special. ' : 'Big on value, easy on budget. '}Limited time — hurry before it is gone!`,
-    fullAddr ? `Head over to ${fullAddr}. ${brand} is right here, deals are waiting!` : `Head over to the store — ${brand} is right here, deals are waiting!`,
-    `One last reminder! ${offerLine}. Find us at ${fullAddr}. Visit ${brand} today!`,
+    fullAddr ? `Head over to ${fullAddr}. ${brand} is right here — punch the name in your GPS and you are minutes away!` : `Head over to the store — ${brand} is right here, deals are waiting!`,
+    `One last reminder! ${offerLine}. ${goalCTA}. Find us at ${fullAddr}. Visit ${brand} today!`,
   ]);
 
   const texts = (hindi ? [
@@ -185,13 +211,13 @@ function generateMockConcept(business) {
     `${productLine.toUpperCase()}!!`,
     `${offerLine.toUpperCase()}`,
     fullAddr ? `${fullAddr.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()} — YAHIN HAI`,
-    `${offerLine.toUpperCase()}! ${fullAddr.toUpperCase()} — VISIT ${brand.toUpperCase()}`,
+    `${offerLine.toUpperCase()}! ${fullAddr.toUpperCase()} — ${goalCTA.toUpperCase()} @ ${brand.toUpperCase()}`,
   ] : [
     `${festHook} @ ${brand.toUpperCase()}`,
     `${productLine.toUpperCase()}!!`,
     `${offerLine.toUpperCase()}`,
     fullAddr ? `${fullAddr.toUpperCase()} — ${brand.toUpperCase()}` : `${brand.toUpperCase()}'S HERE`,
-    `${offerLine.toUpperCase()}! FIND US: ${fullAddr.toUpperCase()} — VISIT ${brand.toUpperCase()}`,
+    `${offerLine.toUpperCase()}! ${goalCTA.toUpperCase()} — FIND US: ${fullAddr.toUpperCase()}`,
   ]);
 
   const visuals = (hindi ? [
@@ -208,17 +234,16 @@ function generateMockConcept(business) {
     `Final mega call-to-action card: ${brand} — ${offerLine}, full address: ${locLine}, with fire emojis.`,
   ]);
 
-  const hook = `${festHook} @ ${brand}!`;
+  const hook = `${festHook} @ ${brand} — ${tone.hookTail}!`;
   const caption = [
-    `${festLabel ? `${festLabel.toUpperCase()} SALE 🔥` : 'SPECIAL OFFER 🔥'}`,
+    `${festLabel ? `${festLabel.toUpperCase()} SALE 🔥` : 'SPECIAL OFFER 🔥'} · ${style || 'Viral'} VIBE`,
     '',
     `🏬 ${brand} — ${productLine}`,
     rawOffer ? `🎁 Offer: ${rawOffer}` : '',
     `📍 ${locLine}`,
     '',
     `⏰ Limited time offer — hurry before it's gone!`,
-    `🔥 Double tap if this deal is TOO GOOD to miss!`,
-    hindi ? 'सबसे best deals के लिए follow करें + save करें!' : 'Follow + save for the best deals in town!',
+    `💬 ${goalCTA}! ${hindi ? 'सबसे best deals के लिए follow करें + save करें!' : 'Follow + save for the best deals in town!'}`,
     '',
     ...buildHashtags({ brand, business_type, festival: festLabel, location: locLine, style }),
   ].filter((l) => l !== '').join('\n');
