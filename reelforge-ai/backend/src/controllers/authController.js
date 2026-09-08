@@ -50,7 +50,7 @@ const register = async (req, res, next) => {
 
     await pool.execute(
       'INSERT INTO subscriptions (user_id, plan, status, reels_limit, reels_used) VALUES (?, ?, ?, ?, ?)',
-      [userId, 'free', 'active', 5, 0]
+      [userId, 'free', 'active', 50, 0]
     );
 
     return res.status(201).json({

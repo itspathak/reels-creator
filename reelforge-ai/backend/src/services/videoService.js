@@ -468,9 +468,9 @@ async function renderWithFfmpeg({ template, scenes, media, voiceUrl, brandKit })
 
     const frames = Math.round(durations[i] * 25);
     const zoomExpr = zoomIn
-      ? `z='min(1.0+0.0016*on,1.24)'`
-      : `z='max(1.24-0.0016*on,1.02)'`;
-    const panExpr = i % 3 === 0 ? `x='iw/2-(iw/zoom/2)+30*sin(on/36)'` : `x='iw/2-(iw/zoom/2)'`;
+      ? `z='min(1.0+0.0022*on,1.34)'`
+      : `z='max(1.34-0.0022*on,1.03)'`;
+    const panExpr = i % 3 === 0 ? `x='iw/2-(iw/zoom/2)+45*sin(on/30)'` : `x='iw/2-(iw/zoom/2)'`;
     const mirror = imgPool && i % 2 === 1 ? ',hflip' : '';
 
     const filter = [
